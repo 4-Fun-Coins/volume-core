@@ -40,7 +40,7 @@ contract Volume is ERC20 {
 
         // Check the tank
         if (fuelTank == 0)
-            return crashAndBurn(amount);
+            return false; // Crashed
         
         // Calculate transferAmount and fuel amount
         uint256 fuel = amount * FUEL_AMOUNT / BASE;
@@ -76,7 +76,7 @@ contract Volume is ERC20 {
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
         // Check the tank
         if (fuelTank == 0)
-            return crashAndBurn(amount);
+            return false; // Crashed
 
         // Calculate transferAmount and fuel amount
         uint256 fuel = amount * FUEL_AMOUNT / BASE;
@@ -99,12 +99,6 @@ contract Volume is ERC20 {
         _approve(sender, _msgSender(), currentAllowance - amount);
 
         return true;
-    }
-
-    function crashAndBurn(uint256 amount) private returns (bool) {
-        _burn(_msgSender(), amount);
-
-        return false;
     }
 
     function fly() private returns (bool) {

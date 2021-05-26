@@ -4,6 +4,11 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+/**
+    This is a contract used for testing only. If you want to deploy Volume to the 
+    Mainnet, please deploy Volume.sol.
+ */
+
 contract TestVolume is ERC20 {
 
     using SafeMath for uint256;
@@ -45,7 +50,7 @@ contract TestVolume is ERC20 {
 
         // Check the tank
         if (fuelTank == 0)
-            return crashAndBurn(amount);
+            return false; // crashed
         
         // Calculate transferAmount and fuel amount
         uint256 fuel = amount * FUEL_AMOUNT / BASE;
@@ -81,7 +86,7 @@ contract TestVolume is ERC20 {
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
         // Check the tank
         if (fuelTank == 0)
-            return crashAndBurn(amount);
+            return false; // crashed
 
         // Calculate transferAmount and fuel amount
         uint256 fuel = amount * FUEL_AMOUNT / BASE;
@@ -104,12 +109,6 @@ contract TestVolume is ERC20 {
         _approve(sender, _msgSender(), currentAllowance - amount);
 
         return true;
-    }
-
-    function crashAndBurn(uint256 amount) private returns (bool) {
-        _burn(_msgSender(), amount);
-
-        return false;
     }
 
     function fly() private returns (bool) {
