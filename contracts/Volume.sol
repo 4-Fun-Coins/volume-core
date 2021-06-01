@@ -129,11 +129,7 @@ contract Volume is ERC20 {
         lastRefuel = block.number * BASE;
     }
 
-    function getFuelPile() external view returns (uint256) {
-        return fuelPile;
-    }
-
-    function getFuelTank() external view returns (uint256) {
+    function getFuel() external view returns (uint256) {
         return fuelTank;
     }
 }

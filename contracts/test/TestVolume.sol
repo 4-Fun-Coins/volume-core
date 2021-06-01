@@ -3,13 +3,14 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
     This is a contract used for testing only. If you want to deploy Volume to the 
     Mainnet, please deploy Volume.sol.
  */
 
-contract TestVolume is ERC20 {
+contract TestVolume is ERC20, ReentrancyGuard {
 
     using SafeMath for uint256;
 
@@ -46,7 +47,7 @@ contract TestVolume is ERC20 {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
 
         // Check the tank
         if (fuelTank == 0)
@@ -83,7 +84,7 @@ contract TestVolume is ERC20 {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
         // Check the tank
         if (fuelTank == 0)
             return false; // crashed
