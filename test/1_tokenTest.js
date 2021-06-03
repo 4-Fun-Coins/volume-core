@@ -83,12 +83,17 @@ contract('TestVolume', async (accounts) => {
 
                 let transactions = [];
 
-                for(let i = 0; i < 7; i++)
+                for(let i = 0; i < 7; i++) {
                     transactions.push(await volume.transfer(receiver, toWei('1385.8'), {from: owner}));
+                }
+
+                for (let i=0; i < 5; i++) {
+                    transactions.push(await volume.transfer(owner, toWei('1385.8'), {from: receiver}));
+                }
 
                 await Promise.all(transactions);
 
-                // We should have ~ 6 "fuel" added to the tank at this point
+                // We should have ~ 10 "fuel" added to the tank at this point
             });
 
             it('Diff between initialFuel and currentFuel should be -4', async () => {
@@ -98,20 +103,26 @@ contract('TestVolume', async (accounts) => {
                 // Fuel diff
                 let fuelDiff = fromWei(initialFuel) - fuelTank;
 
-                assert.equal(fuelDiff, 4);
+                assert.equal(fuelDiff, 5);
             });
 
-            it('Total Fuel added should be 6 blocks', async () => {
+            it('Total Fuel added should be 10 blocks', async () => {
                 // Get the fuel added so far
                 let totalFuelAdded = fromWei(await volume.getTotalFuelAdded.call());
 
-                assert.equal(totalFuelAdded, 6);
+                assert.equal(totalFuelAdded, 10);
             });
 
-            it('Owner Fuel added should be 6 blocks', async () => {
+            it('Owner fuel added should be 6 blocks', async () => {
                 let ownerFuelAdded = fromWei(await volume.getPersonalFuelAdded.call(owner));
 
                 assert.equal(ownerFuelAdded, 6);
+            });
+
+            it('Reciever fuel added should be 4 blocks', async () => {
+                let receiverFuelAdded = fromWei(await volume.getPersonalFuelAdded.call(receiver));
+
+                assert.equal(receiverFuelAdded, 4);
             });
         });
 
