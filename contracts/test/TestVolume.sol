@@ -29,6 +29,12 @@ contract TestVolume is ERC20, ReentrancyGuard {
     uint256 fuelPile;
 
     uint256 prevFuelTank;
+
+    uint256 totalFuelAdded; // Keep track of all of the additional added blocks
+
+    mapping (address => uint256) private personalFuelPile;
+
+    mapping (address => uint256) private personalFuelAdded;
     
     constructor () ERC20("Volume", "VOL") {
         owner = _msgSender();
@@ -37,6 +43,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
         lastRefuel = block.number * BASE;
         fuelPile = 0;
         fuelTank = 6307200*BASE; // This should be ~1 year on BSC
+        totalFuelAdded = 0; // This will be incremented everytime at least 1 full block is added to the fuel
     }
 
     /**
@@ -62,7 +69,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
         if (!fly())
             return false; // Crashed
 
-        refuel(fuel);
+        refuel(fuel, _msgSender());
 
         _burn(_msgSender(), fuel);
         //
@@ -98,7 +105,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
         if (!fly())
             return false; // Crashed
 
-        refuel(fuel);
+        refuel(fuel, sender);
 
         _burn(_msgSender(), fuel);
         //
@@ -126,17 +133,27 @@ contract TestVolume is ERC20, ReentrancyGuard {
         }
     }
 
-    function refuel(uint256 refuelAmount) private {
+    function refuel(uint256 refuelAmount, address fueler) private {
         // Calculate the % of supply that gets refueled
         uint256 fuel = refuelAmount * BASE * BASE / totalSupply() / BASE;
+
+        personalFuelPile[fueler] += (fuelTank + personalFuelPile[fueler]) * fuel / BASE;
+
+        if (personalFuelPile[fueler] > BASE) {
+            uint256 leftOnPersonalPile = personalFuelPile[fueler] % BASE; //Leaving any fractional blocks on personal pile
+            uint256 integerPersonalFuel = personalFuelPile[fueler] - leftOnPersonalPile; // Separating the personally accumulated full blocks from the total pile
+            personalFuelAdded[fueler] += integerPersonalFuel; // Moving full blocks to separate variable for display use
+            personalFuelPile[fueler] = leftOnPersonalPile; // Resetting personal pile to contain only fractional blocks
+        }
 
         fuelPile += (fuelTank + fuelPile) * fuel / BASE;
 
         if (fuelPile > BASE) {
-            uint256 leftOnPile = fuelPile % BASE;
-            uint256 addToFuelTank = fuelPile - leftOnPile;
-            fuelTank += addToFuelTank;
-            fuelPile = leftOnPile;
+            uint256 leftOnPile = fuelPile % BASE; // Leaving any fractional blocks on the fuel pile
+            uint256 addToFuelTank = fuelPile - leftOnPile; // Separating the accumulated full blocks from the pile
+            fuelTank += addToFuelTank; // Adding the accumulated full blocks from the pile to the tank
+            totalFuelAdded += addToFuelTank; // Keeping track of the total global fuel added
+            fuelPile = leftOnPile; // Resetting the fuel pile so that it only has the fractional blocks
         }
 
         lastRefuel = block.number * BASE;
@@ -168,5 +185,13 @@ contract TestVolume is ERC20, ReentrancyGuard {
 
     function setFuelTank(uint256 newFuel) external {
         fuelTank = newFuel;
+    }
+
+    function getTotalFuelAdded() external view returns (uint256) {
+        return totalFuelAdded;
+    }
+
+    function getPersonalFuelAdded(address account) external view returns (uint256) {
+        return personalFuelAdded[account];
     }
 }

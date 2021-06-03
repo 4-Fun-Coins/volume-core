@@ -100,6 +100,19 @@ contract('TestVolume', async (accounts) => {
 
                 assert.equal(fuelDiff, 4);
             });
+
+            it('Total Fuel added should be 6 blocks', async () => {
+                // Get the fuel added so far
+                let totalFuelAdded = fromWei(await volume.getTotalFuelAdded.call());
+
+                assert.equal(totalFuelAdded, 6);
+            });
+
+            it('Owner Fuel added should be 6 blocks', async () => {
+                let ownerFuelAdded = fromWei(await volume.getPersonalFuelAdded.call(owner));
+
+                assert.equal(ownerFuelAdded, 6);
+            });
         });
 
         // For this test - please set the initial fuel in the constructor
