@@ -107,7 +107,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
 
         refuel(fuel, sender);
 
-        _burn(_msgSender(), fuel);
+        _burn(sender, fuel);
         //
 
         _transfer(sender, recipient, transferAmount);
