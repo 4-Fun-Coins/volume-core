@@ -114,13 +114,13 @@ contract('TestVolume', async (accounts) => {
             });
 
             it('Owner fuel added should be 6 blocks', async () => {
-                let ownerFuelAdded = fromWei(await volume.getPersonalFuelAdded.call(owner));
+                let ownerFuelAdded = fromWei(await volume.getUserFuelAdded.call(owner));
 
                 assert.equal(ownerFuelAdded, 6);
             });
 
             it('Reciever fuel added should be 4 blocks', async () => {
-                let receiverFuelAdded = fromWei(await volume.getPersonalFuelAdded.call(receiver));
+                let receiverFuelAdded = fromWei(await volume.getUserFuelAdded.call(receiver));
 
                 assert.equal(receiverFuelAdded, 4);
             });

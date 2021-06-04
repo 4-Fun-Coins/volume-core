@@ -32,9 +32,9 @@ contract TestVolume is ERC20, ReentrancyGuard {
 
     uint256 totalFuelAdded; // Keep track of all of the additional added blocks
 
-    mapping (address => uint256) private personalFuelPile;
+    mapping (address => uint256) private userFuelPile;
 
-    mapping (address => uint256) private personalFuelAdded;
+    mapping (address => uint256) private userFuelAdded;
     
     constructor () ERC20("Volume", "VOL") {
         owner = _msgSender();
@@ -137,13 +137,13 @@ contract TestVolume is ERC20, ReentrancyGuard {
         // Calculate the % of supply that gets refueled
         uint256 fuel = refuelAmount * BASE * BASE / totalSupply() / BASE;
 
-        personalFuelPile[fueler] += (fuelTank + personalFuelPile[fueler]) * fuel / BASE;
+        userFuelPile[fueler] += (fuelTank + userFuelPile[fueler]) * fuel / BASE;
 
-        if (personalFuelPile[fueler] > BASE) {
-            uint256 leftOnPersonalPile = personalFuelPile[fueler] % BASE; //Leaving any fractional blocks on personal pile
-            uint256 integerPersonalFuel = personalFuelPile[fueler] - leftOnPersonalPile; // Separating the personally accumulated full blocks from the total pile
-            personalFuelAdded[fueler] += integerPersonalFuel; // Moving full blocks to separate variable for display use
-            personalFuelPile[fueler] = leftOnPersonalPile; // Resetting personal pile to contain only fractional blocks
+        if (userFuelPile[fueler] > BASE) {
+            uint256 leftOnUserPile = userFuelPile[fueler] % BASE; //Leaving any fractional blocks on user pile
+            uint256 integerUserFuel = userFuelPile[fueler] - leftOnUserPile; // Separating the personally accumulated full blocks from the total pile
+            userFuelAdded[fueler] += integerUserFuel; // Moving full blocks to separate variable for display use
+            userFuelPile[fueler] = leftOnUserPile; // Resetting user pile to contain only fractional blocks
         }
 
         fuelPile += (fuelTank + fuelPile) * fuel / BASE;
@@ -191,7 +191,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
         return totalFuelAdded;
     }
 
-    function getPersonalFuelAdded(address account) external view returns (uint256) {
-        return personalFuelAdded[account];
+    function getUserFuelAdded(address account) external view returns (uint256) {
+        return userFuelAdded[account];
     }
 }
