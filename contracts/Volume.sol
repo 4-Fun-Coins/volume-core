@@ -3,8 +3,9 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Volume is ERC20 {
+contract Volume is ERC20, ReentrancyGuard {
 
     using SafeMath for uint256;
 
@@ -19,10 +20,16 @@ contract Volume is ERC20 {
     uint256 fuelTank; // number of remaining blocks
 
     uint256 fuelPile;
+
+    uint256 totalFuelAdded; // Keep track of all of the additional added blocks
+
+    mapping (address => uint256) private userFuelPile;
+
+    mapping (address => uint256) private userFuelAdded;
     
     constructor () ERC20("Volume", "VOL") {
         owner = _msgSender();
-        _mint(_msgSender(), 1000000*BASE);
+        _mint(_msgSender(), 1000000000*BASE);
         lastRefuel = block.number * BASE;
         fuelPile = 0;
         fuelTank = 6307200*BASE; // This should be ~1 year on BSC
@@ -36,7 +43,7 @@ contract Volume is ERC20 {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
 
         // Check the tank
         if (fuelTank == 0)
@@ -51,7 +58,7 @@ contract Volume is ERC20 {
         if (!fly())
             return false; // Crashed
 
-        refuel(fuel);
+        refuel(fuel, _msgSender());
 
         _burn(_msgSender(), fuel);
         //
@@ -73,7 +80,7 @@ contract Volume is ERC20 {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
         // Check the tank
         if (fuelTank == 0)
             return false; // Crashed
@@ -87,9 +94,9 @@ contract Volume is ERC20 {
         if (!fly())
             return false; // Crashed
 
-        refuel(fuel);
+        refuel(fuel, sender);
 
-        _burn(_msgSender(), fuel);
+        _burn(sender, fuel);
         //
 
         _transfer(sender, recipient, transferAmount);
@@ -113,17 +120,27 @@ contract Volume is ERC20 {
         }
     }
 
-    function refuel(uint256 refuelAmount) private {
+    function refuel(uint256 refuelAmount, address fueler) private {
         // Calculate the % of supply that gets refueled
         uint256 fuel = refuelAmount * BASE * BASE / totalSupply() / BASE;
+
+        userFuelPile[fueler] += (fuelTank + userFuelPile[fueler]) * fuel / BASE;
+
+        if (userFuelPile[fueler] > BASE) {
+            uint256 leftOnUserPile = userFuelPile[fueler] % BASE; //Leaving any fractional blocks on user pile
+            uint256 integerUserFuel = userFuelPile[fueler] - leftOnUserPile; // Separating the personally accumulated full blocks from the total pile
+            userFuelAdded[fueler] += integerUserFuel; // Moving full blocks to separate variable for display use
+            userFuelPile[fueler] = leftOnUserPile; // Resetting user pile to contain only fractional blocks
+        }
 
         fuelPile += (fuelTank + fuelPile) * fuel / BASE;
 
         if (fuelPile > BASE) {
-            uint256 leftOnPile = fuelPile % BASE;
-            uint256 addToFuelTank = fuelPile - leftOnPile;
-            fuelTank += addToFuelTank;
-            fuelPile = leftOnPile;
+            uint256 leftOnPile = fuelPile % BASE; // Leaving any fractional blocks on the fuel pile
+            uint256 addToFuelTank = fuelPile - leftOnPile; // Separating the accumulated full blocks from the pile
+            fuelTank += addToFuelTank; // Adding the accumulated full blocks from the pile to the tank
+            totalFuelAdded += addToFuelTank; // Keeping track of the total global fuel added
+            fuelPile = leftOnPile; // Resetting the fuel pile so that it only has the fractional blocks
         }
 
         lastRefuel = block.number * BASE;
@@ -131,5 +148,13 @@ contract Volume is ERC20 {
 
     function getFuel() external view returns (uint256) {
         return fuelTank;
+    }
+
+    function getTotalFuelAdded() external view returns (uint256) {
+        return totalFuelAdded;
+    }
+
+    function getUserFuelAdded(address account) external view returns (uint256) {
+        return userFuelAdded[account];
     }
 }
