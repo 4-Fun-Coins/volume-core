@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../../interfaces/IEscrow.sol";
 
 /**
     This is a contract used for testing only. If you want to deploy Volume to the 
@@ -15,6 +16,8 @@ contract TestVolume is ERC20, ReentrancyGuard {
     using SafeMath for uint256;
 
     address owner;
+
+    bool OTT;
 
     uint256 constant BASE = 10**18;
 
@@ -35,15 +38,29 @@ contract TestVolume is ERC20, ReentrancyGuard {
     mapping (address => uint256) private userFuelPile;
 
     mapping (address => uint256) private userFuelAdded;
+
+    address escrow;
+
+    event REFUEL(address indexed fueler, uint256 indexed amount);
     
-    constructor () ERC20("Volume", "VOL") {
+    constructor (address escrowAcc) ERC20("Volume", "VOL") {
         owner = _msgSender();
-        _mint(_msgSender(), 1000000*BASE);
+        _mint(_msgSender(), 1000000000*BASE);
         takeoffBlock = block.number * BASE;
         lastRefuel = block.number * BASE;
-        fuelPile = 0;
         fuelTank = 6307200*BASE; // This should be ~1 year on BSC
-        totalFuelAdded = 0; // This will be incremented everytime at least 1 full block is added to the fuel
+        escrow = escrowAcc;
+    }
+
+    modifier flying(address recipient) {
+        // Check the tank
+        if (fuelTank == 0){
+            // We crashed, the only transfers we allow is to escrow OR from LP pool
+            require (recipient == escrow, 'Crashed - please redeem your tokens');
+            require (_msgSender() == Escrow(escrow).getLPAddress(), 'Crashed - please redeem your tokens');
+        }
+
+        _;
     }
 
     /**
@@ -54,25 +71,28 @@ contract TestVolume is ERC20, ReentrancyGuard {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) flying(recipient) public virtual override returns (bool) {
 
-        // Check the tank
-        if (fuelTank == 0)
-            return false; // crashed
-        
         // Calculate transferAmount and fuel amount
         uint256 fuel = amount * FUEL_AMOUNT / BASE;
         uint256 transferAmount = amount - fuel;
 
         assert(transferAmount > fuel); // If this is the case, something is very wrong - revert
 
-        if (!fly())
-            return false; // Crashed
+        /**
+            No fees should be applicable if:
+                - any escrow interactions
+                - any LP interactions
+                TODO - make this work
+         */
+        if (!checkEscrowOrLP(_msgSender()) && !checkEscrowOrLP(recipient)) {
+            if (!fly())
+                return false; // Crashed
 
-        refuel(fuel, _msgSender());
+            refuel(amount, fuel, _msgSender());
 
-        _burn(_msgSender(), fuel);
-        //
+            _burn(_msgSender(), fuel);
+        }
 
         _transfer(_msgSender(), recipient, transferAmount);
         return true;
@@ -91,10 +111,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
-        // Check the tank
-        if (fuelTank == 0)
-            return false; // crashed
+    function transferFrom(address sender, address recipient, uint256 amount) flying(recipient) public virtual override returns (bool) {
 
         // Calculate transferAmount and fuel amount
         uint256 fuel = amount * FUEL_AMOUNT / BASE;
@@ -102,19 +119,35 @@ contract TestVolume is ERC20, ReentrancyGuard {
 
         assert(transferAmount > fuel); // If this is the case, something is very wrong - revert
 
-        if (!fly())
-            return false; // Crashed
+        if (!checkEscrowOrLP(_msgSender()) && !checkEscrowOrLP(recipient)) {
+            if (!fly())
+                return false; // Crashed
 
-        refuel(fuel, sender);
+            refuel(amount, fuel, sender);
 
-        _burn(sender, fuel);
-        //
+            _burn(sender, fuel);
+        }
 
         _transfer(sender, recipient, transferAmount);
 
         uint256 currentAllowance = allowance(sender, _msgSender());
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
         _approve(sender, _msgSender(), currentAllowance - amount);
+
+        return true;
+    }
+
+    /**
+        This function allows refueling to be done with the full transfer amount.
+        All tokens send here will be burned.
+     */
+    function directRefuel(uint256 fuel) external returns (bool) {
+        if (!fly())
+            return false; // Crashed
+
+        refuel(0, fuel, _msgSender());
+
+        _burn(_msgSender(), fuel);
 
         return true;
     }
@@ -128,14 +161,14 @@ contract TestVolume is ERC20, ReentrancyGuard {
             fuelTank = 0;
             return false;
         } else {
-            fuelTank -= blocksTravelled;            
+            fuelTank -= blocksTravelled;
             return true;
         }
     }
 
-    function refuel(uint256 refuelAmount, address fueler) private {
+    function refuel(uint256 transferAmount, uint256 refuelAmount, address fueler) private {
         // Calculate the % of supply that gets refueled
-        uint256 fuel = refuelAmount * BASE * BASE / totalSupply() / BASE;
+        uint256 fuel = refuelAmount * BASE * BASE / (totalSupply() - transferAmount) / BASE * 300;
 
         userFuelPile[fueler] += (fuelTank + userFuelPile[fueler]) * fuel / BASE;
 
@@ -157,12 +190,43 @@ contract TestVolume is ERC20, ReentrancyGuard {
         }
 
         lastRefuel = block.number * BASE;
+
+        emit REFUEL(fueler, fuel);
+    }
+
+    // === Production Functions === //
+    function checkEscrowOrLP(address toCheck) internal view returns (bool) {
+        // TODO - Change getTestLPAddress to getLP from the escrow function when escrow is deployed
+        if (toCheck == escrow || toCheck == getTestLPAddress()) {
+            return true;
+        }
+
+        return false;
     }
 
     function getFuel() external view returns (uint256) {
         return fuelTank;
     }
 
+    function getTotalFuelAdded() external view returns (uint256) {
+        return totalFuelAdded;
+    }
+
+    function getUserFuelAdded(address account) external view returns (uint256) {
+        return userFuelAdded[account];
+    }
+    // === End of Production Functions === //
+
+    // === One Time Transfer === // 
+    function transferOwnership(address newOwner) external {
+        assert (_msgSender() == owner);
+        if (!OTT){
+            owner = newOwner;
+            OTT = true;
+        }
+    }
+
+    // === Test Functions === //
     function getLastRefuel() external view returns (uint256) {
         return lastRefuel;
     }
@@ -187,11 +251,16 @@ contract TestVolume is ERC20, ReentrancyGuard {
         fuelTank = newFuel;
     }
 
-    function getTotalFuelAdded() external view returns (uint256) {
-        return totalFuelAdded;
+    function getEscrowAddress() external view returns (address) {
+        return escrow;
     }
 
-    function getUserFuelAdded(address account) external view returns (uint256) {
-        return userFuelAdded[account];
+    function getLPAddress() external view returns (address) {
+        return Escrow(escrow).getLPAddress();
     }
+
+    function getTestLPAddress() internal pure returns (address) {
+        return 0xe420279D0bf665073f069cB576c28d6F77633b20; // dummy address 
+    }
+    // === End of Test Functions === //
 }
