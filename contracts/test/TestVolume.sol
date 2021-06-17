@@ -72,7 +72,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
         // Check the tank
         if (fuelTank == 0){
             // We crashed, the only transfers we allow is to escrow OR from LP pool
-            require (recipient == escrow || sender == IVolumeEscrow(escrow).getLPAddress(), 'Crashed - please redeem your tokens');
+            require (recipient == escrow || sender == IVolumeEscrow(escrow).getLPAddress(), 'Crashed - please redeem your tokens on escrow');
         }
         _;
     }
