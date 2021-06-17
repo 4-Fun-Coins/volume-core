@@ -130,7 +130,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
         if (!fly())
             return false; // Crashed
 
-        refuel(fuel * 10000 /**Make this fuel as efficient as if it was issued by a normal transaction */, fuel, _msgSender()); 
+        refuel(fuel /**Make this fuel a bit as efficient as if it was issued by a normal transaction */, fuel, _msgSender()); 
 
         _burn(_msgSender(), fuel);
 
@@ -195,6 +195,7 @@ contract TestVolume is ERC20, ReentrancyGuard {
 
         // TODO : only escrow , becasue probably a lot of volume is going to be generated fron swaping in bakery 
         // if there is no fuel generated fron that it is a big waste 
+        // ALSO: When the bakry router is the one sending the fuel should be added to the receiver and not to the router
         /**
             No fees should be applicable if:
                 - any escrow in interactions 
@@ -221,8 +222,8 @@ contract TestVolume is ERC20, ReentrancyGuard {
     }
 
     /**
-        When tWe crash escrow will be able to burn any left non used allocation 
-        like marketing allocation , LP rewards and the Vol that was used to provid liquidity
+        When We crash escrow will be able to burn any left non used allocations
+        like marketing allocation , LP rewards and the Vol that was used to provide liquidity
         the only Vol that will stay is the one held by Volume users and they can call the escrow to redeem their
         volume for the underlaying WBNB
      */
@@ -237,7 +238,6 @@ contract TestVolume is ERC20, ReentrancyGuard {
         if (toCheck == escrow || toCheck == getTestLPAddress()) {
             return true;
         }
-
         return false;
     }
 
