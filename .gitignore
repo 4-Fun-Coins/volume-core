@@ -1,5 +1,10 @@
+.secret
+.infuraKey
+.secret.local
+.etherscanKey
 /node_modules
-
 /build
-
 package-lock.json
+/contracts/artifacts
+.idea
+artifacts/
