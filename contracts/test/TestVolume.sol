@@ -1,174 +1,30 @@
 // SPDX-License-Identifier: GPL-v3
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../Volume.sol";
 
 /**
     This is a contract used for testing only. If you want to deploy Volume to the 
     Mainnet, please deploy Volume.sol.
  */
 
-contract TestVolume is ERC20, ReentrancyGuard {
+contract TestVolume is Volume {
+    uint256 private lastBlock;
+    constructor (address escrowAcc, address mulitisig ,address volumeJackpot) Volume(escrowAcc , mulitisig,volumeJackpot) {}
 
-    using SafeMath for uint256;
+    // === Test Functions === //
+    // we use this to push blocks forward in local envirements 
+    function updateBlock() external returns(uint256) {
+        lastBlock = block.number;
+        return lastBlock;
+    }
 
-    address owner;
-
-    uint256 constant BASE = 10**18;
-
-    uint256 constant FUEL_AMOUNT = BASE/10000; // Should be 0.01% when used correctly
-
-    uint256 takeoffBlock; // starting block
-
-    uint256 lastRefuel; // Last pitstop
-
-    uint256 fuelTank; // number of remaining blocks
-
-    uint256 fuelPile;
-
-    uint256 prevFuelTank;
-
-    uint256 totalFuelAdded; // Keep track of all of the additional added blocks
-
-    mapping (address => uint256) private userFuelPile;
-
-    mapping (address => uint256) private userFuelAdded;
+    function getCurrentBlock() external view returns (uint256){
+        return block.number;
+    }
     
-    constructor () ERC20("Volume", "VOL") {
-        owner = _msgSender();
-        _mint(_msgSender(), 1000000*BASE);
-        takeoffBlock = block.number * BASE;
-        lastRefuel = block.number * BASE;
-        fuelPile = 0;
-        fuelTank = 6307200*BASE; // This should be ~1 year on BSC
-        totalFuelAdded = 0; // This will be incremented everytime at least 1 full block is added to the fuel
-    }
-
-    /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - `recipient` cannot be the zero address.
-     * - the caller must have a balance of at least `amount`.
-     */
-    function transfer(address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
-
-        // Check the tank
-        if (fuelTank == 0)
-            return false; // crashed
-        
-        // Calculate transferAmount and fuel amount
-        uint256 fuel = amount * FUEL_AMOUNT / BASE;
-        uint256 transferAmount = amount - fuel;
-
-        assert(transferAmount > fuel); // If this is the case, something is very wrong - revert
-
-        if (!fly())
-            return false; // Crashed
-
-        refuel(fuel, _msgSender());
-
-        _burn(_msgSender(), fuel);
-        //
-
-        _transfer(_msgSender(), recipient, transferAmount);
-        return true;
-    }
-
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20}.
-     *
-     * Requirements:
-     *
-     * - `sender` and `recipient` cannot be the zero address.
-     * - `sender` must have a balance of at least `amount`.
-     * - the caller must have allowance for ``sender``'s tokens of at least
-     * `amount`.
-     */
-    function transferFrom(address sender, address recipient, uint256 amount) nonReentrant public virtual override returns (bool) {
-        // Check the tank
-        if (fuelTank == 0)
-            return false; // crashed
-
-        // Calculate transferAmount and fuel amount
-        uint256 fuel = amount * FUEL_AMOUNT / BASE;
-        uint256 transferAmount = amount - fuel;
-
-        assert(transferAmount > fuel); // If this is the case, something is very wrong - revert
-
-        if (!fly())
-            return false; // Crashed
-
-        refuel(fuel, sender);
-
-        _burn(sender, fuel);
-        //
-
-        _transfer(sender, recipient, transferAmount);
-
-        uint256 currentAllowance = allowance(sender, _msgSender());
-        require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
-        _approve(sender, _msgSender(), currentAllowance - amount);
-
-        return true;
-    }
-
-    function fly() private returns (bool) {
-        uint256 blocksTravelled = (block.number * BASE) - lastRefuel;
-
-        prevFuelTank = fuelTank;
-
-        if (blocksTravelled > fuelTank) {
-            fuelTank = 0;
-            return false;
-        } else {
-            fuelTank -= blocksTravelled;            
-            return true;
-        }
-    }
-
-    function refuel(uint256 refuelAmount, address fueler) private {
-        // Calculate the % of supply that gets refueled
-        uint256 fuel = refuelAmount * BASE * BASE / totalSupply() / BASE;
-
-        userFuelPile[fueler] += (fuelTank + userFuelPile[fueler]) * fuel / BASE;
-
-        if (userFuelPile[fueler] > BASE) {
-            uint256 leftOnUserPile = userFuelPile[fueler] % BASE; //Leaving any fractional blocks on user pile
-            uint256 integerUserFuel = userFuelPile[fueler] - leftOnUserPile; // Separating the personally accumulated full blocks from the total pile
-            userFuelAdded[fueler] += integerUserFuel; // Moving full blocks to separate variable for display use
-            userFuelPile[fueler] = leftOnUserPile; // Resetting user pile to contain only fractional blocks
-        }
-
-        fuelPile += (fuelTank + fuelPile) * fuel / BASE;
-
-        if (fuelPile > BASE) {
-            uint256 leftOnPile = fuelPile % BASE; // Leaving any fractional blocks on the fuel pile
-            uint256 addToFuelTank = fuelPile - leftOnPile; // Separating the accumulated full blocks from the pile
-            fuelTank += addToFuelTank; // Adding the accumulated full blocks from the pile to the tank
-            totalFuelAdded += addToFuelTank; // Keeping track of the total global fuel added
-            fuelPile = leftOnPile; // Resetting the fuel pile so that it only has the fractional blocks
-        }
-
-        lastRefuel = block.number * BASE;
-    }
-
-    function getFuel() external view returns (uint256) {
-        return fuelTank;
-    }
-
     function getLastRefuel() external view returns (uint256) {
         return lastRefuel;
-    }
-
-    function getPrevFuelTank() external view returns (uint256) {
-        return prevFuelTank;
     }
 
     function getBlocksTravelled() external view returns (uint256) {
@@ -179,19 +35,18 @@ contract TestVolume is ERC20, ReentrancyGuard {
         return block.number;
     }
 
-    function getFuelPile() external view returns (uint256) {
-        return fuelPile;
-    }
-
     function setFuelTank(uint256 newFuel) external {
+        require(block.chainid != 56 ,"not avalaible on main net");
         fuelTank = newFuel;
     }
 
-    function getTotalFuelAdded() external view returns (uint256) {
-        return totalFuelAdded;
+    function getEscrowAddress() external view returns (address) {
+        return escrow;
     }
-
-    function getUserFuelAdded(address account) external view returns (uint256) {
-        return userFuelAdded[account];
+    
+    function getLPAddress() external view returns (address) {
+        return _getLPAddress();
     }
+    
+    // === End of Test Functions === //
 }
