@@ -178,10 +178,11 @@ contract VolumeEscrow is VolumeOwnable , ReentrancyGuard  {
         // If I can't have it I will burn it
         // lets burn all non used allocations 
         // the only redeamable vol left is the one in all user's wallets and the team allocation 
-        IVolumeBEP20(volume).directBurn(_allocations[4] + _allocations[2] + volumeOut);
-        _subAllocation(4, _allocations[4]);
+        IVolumeBEP20(volume).directBurn(_allocations[4] + _allocations[2] + volumeOut + _allocations[0] + _allocations[1]);
+        _subAllocation(0, _allocations[0]);
+        _subAllocation(1, _allocations[1]);
         _subAllocation(2, _allocations[2]);
-
+        _subAllocation(4, _allocations[4]);
         // burn the amount in the jackpot contract
         IVolumeJackpot(volumeJackpot).burnItAfterCrash();
 
