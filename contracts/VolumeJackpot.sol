@@ -7,6 +7,7 @@ import "./token/IBEP20.sol";
 import "./token/SafeBEP20.sol";
 import "./interfaces/IVolumeBEP20.sol";
 import "./interfaces/IVolumeEscrow.sol";
+import './data/structs.sol';
 
 contract VolumeJackpot is VolumeOwnable , ReentrancyGuard  {
 
@@ -16,22 +17,16 @@ contract VolumeJackpot is VolumeOwnable , ReentrancyGuard  {
     uint256 constant public MAX_INT_TYPE = type(uint256).max;
     uint256 constant public BASE = 10**18;
 
-    struct MileStone {
-        uint256 startBlock;
-        uint256 endBlock;
-        string name;
-        uint256 amountInPot; // total Vol deposited for this milestone rewards
-    }
-
-
     address immutable escrow;
 
     // block number where this allocation of jackpot starts also reffered to as the milestoneId in the code
     MileStone[] milestones;
     //   milestoneId => index of this milestone in the milestones array 
     mapping (uint256 => uint256) milestoneIndex; // startBlock => index
-    //   milestoneId => address => index
+    //   milestoneId => address => amount
     mapping (uint256 => mapping(address => uint256)) participantsAmounts; // this will hold the index of each participant in the Milestone mapping (structs can't hold nested mapping)
+    // milestoneID => user => fuelAddedto milestone
+    mapping(uint256 => mapping(address => uint256)) participantsAddedFuel; 
     //   milestoneId => milestoneParticipants[]
     mapping (uint256 => address[]) milestoneParticipants; // this will hold the index of each participant in the Milestone mapping (structs can't hold nested mapping)
 
@@ -122,7 +117,7 @@ contract VolumeJackpot is VolumeOwnable , ReentrancyGuard  {
     /**
         @dev
      */
-    function deposit (uint256 amount_, address creditsTo_) external nonReentrant onlyDepositers onlyWhenFlying{
+    function deposit (uint256 amount_,uint fuelContributed_, address creditsTo_) external nonReentrant onlyDepositers onlyWhenFlying{
         require(IVolumeEscrow(escrow).getVolumeAddress() != address(0) , "VolumeJackpot: volume BEP20 address was not set yet");
         IBEP20(IVolumeEscrow(escrow).getVolumeAddress()).safeTransferFrom(_msgSender() , address(this) , amount_);
 
@@ -131,6 +126,7 @@ contract VolumeJackpot is VolumeOwnable , ReentrancyGuard  {
         require(activeMilestone.startBlock != 0 , "VolumeJackpot: no active milestone");
 
         milestones[milestoneIndex[activeMilestone.startBlock]].amountInPot += amount_;
+        milestones[milestoneIndex[activeMilestone.startBlock]].totalFuelAdded += fuelContributed_;
 
         // if this crediter does not exists in our map 
         if( participantsAmounts[activeMilestone.startBlock][creditsTo_] == 0){
@@ -138,6 +134,7 @@ contract VolumeJackpot is VolumeOwnable , ReentrancyGuard  {
         } 
         
         participantsAmounts[activeMilestone.startBlock][creditsTo_] += amount_;
+        participantsAddedFuel[activeMilestone.startBlock][creditsTo_] += fuelContributed_;
     }
 
     /**
@@ -249,6 +246,10 @@ contract VolumeJackpot is VolumeOwnable , ReentrancyGuard  {
         return participantsAmounts[milestoneId_][participant_];
     }
 
+    function getFuelAddedInMilestone (uint256 milestoneId_ , address participant_) external view returns (uint256){
+        return participantsAddedFuel[milestoneId_][participant_];
+    }
+
     function getMilestoneForId (uint256 milestoneId_) external view returns (MileStone memory){
         return milestones[milestoneIndex[milestoneId_]];
     }
@@ -298,6 +299,7 @@ contract VolumeJackpot is VolumeOwnable , ReentrancyGuard  {
                     start ,
                     MAX_INT_TYPE ,
                     name,
+                    0,
                     0
             ));
             milestoneIndex[start] = milestones.length -1;

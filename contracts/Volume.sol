@@ -7,16 +7,14 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVolumeEscrow.sol";
 import "./interfaces/IVolumeJackpot.sol";
+import './data/structs.sol';
 
 
 contract Volume is ERC20, ReentrancyGuard {
 
     using SafeMath for uint256;
 
-    struct UserFuel {
-        address user;
-        uint256 fuelAdded;
-    }
+
 
     bool OTT;
 
@@ -412,7 +410,7 @@ contract Volume is ERC20, ReentrancyGuard {
         uint256 volumeToPot = refuelAmount_ - volumeToBeBurned; // prevents any precision loss
         _transfer(deductedFrom_, address(this), volumeToPot); // transfer the amount to volume
         _approve(address(this), volumeJackpot, volumeToPot); // approve the jackpot contact to spend 
-        IVolumeJackpot(volumeJackpot).deposit(volumeToPot, fueler_); // call deposit for the fueler , this will add the vol to the jackpot and adds this amount to this user's participation
+        IVolumeJackpot(volumeJackpot).deposit(volumeToPot, fuelToBeAdded, fueler_); // call deposit for the fueler , this will add the vol to the jackpot and adds this amount to this user's participation
 
         emit REFUEL(fueler_, fuel);
     }
