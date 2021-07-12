@@ -23,7 +23,9 @@ class Milestone {
     constructor(array){
         this.startBlock = array[0].toString();
         this.endBlock = array[1].toString();
+        this.name = array[2];
         this.potAmount = array[3].toString();
+        this.totalFuelAdded = array[4].toString()
     }
 }
 
@@ -599,6 +601,16 @@ contract('VolumeBEP20', async (accounts) => {
                 volume.transfer(mockLPAddress, toWeiBN('1'), {from: directBurner}),
                 'Crashed - please redeem your tokens on escrow'
             );
-        })
+        });
+
+        it('fuel tracked by jackpot should be the same as the one at volume', async () => {
+            const totalFuel = await volume.getTotalFuelAdded.call();
+            const totalFuelInMilestone = new Milestone(await jackpot.getMilestoneForId(takeoffBlock)).totalFuelAdded;
+            assert.equal(totalFuel.toString(),totalFuelInMilestone , 'fuel added not tracked correctly');
+
+            const totalFuelByUser1 = await volume.getUserFuelAdded.call(user1);
+            const totalFuelByUser1Tracked = await jackpot.getFuelAddedInMilestone.call(takeoffBlock , user1);
+            assert.equal(totalFuelByUser1.toString(),totalFuelByUser1Tracked.toString() , 'fuel added not tracked correctly');
+        });
     }); 
 });

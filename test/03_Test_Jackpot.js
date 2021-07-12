@@ -26,7 +26,9 @@ class Milestone {
     constructor(array){
         this.startBlock = array[0].toString();
         this.endBlock = array[1].toString();
+        this.name = array[2];
         this.potAmount = array[3].toString();
+        this.totalFuelAdded = array[4]
     }
 }
 
@@ -159,6 +161,7 @@ contract('VolumeJackpot', async (accounts) => {
         } 
     }
 
+    let milestone3;
     it('should set the winners correctly', async () => {
     
         await testSettingWinners(milestone1 , milestone2);
@@ -168,7 +171,7 @@ contract('VolumeJackpot', async (accounts) => {
         const currentBlock = await volume.getBlockNumber.call();
 
 
-        const milestone3 = currentBlock.add(new BN('3'));
+        milestone3 = currentBlock.add(new BN('3'));
 
         await jackpot.createMilestone(milestone3 , 'Journey To Saturn');
 
@@ -199,6 +202,28 @@ contract('VolumeJackpot', async (accounts) => {
         await truffleAssert.reverts(
             jackpot.claim(user1),
             `VolumeJackpot: nothing to claim`
+        )
+    });
+
+    it('fuel is being tracked correctly', async () => {
+        const checkUsersFuels = async (user) => {
+            const totalFuelByUser = await volume.getUserFuelAdded.call(user);
+            const totalFuelByUserTracked1 = await jackpot.getFuelAddedInMilestone.call(milestone1 , user);
+            const totalFuelByUserTracked2 = await jackpot.getFuelAddedInMilestone.call(milestone2 , user);
+            const totalFuelByUserTracked3 = await jackpot.getFuelAddedInMilestone.call(milestone3 , user);
+            const totalFuelTrackedUser = totalFuelByUserTracked1.add(totalFuelByUserTracked2).add(totalFuelByUserTracked3);
+            assert.equal(totalFuelByUser.toString(),totalFuelTrackedUser.toString() , 'fuel added not tracked correctly');
+        }
+
+        const totalFuel = await volume.getTotalFuelAdded.call();
+        const totalFuelInMilestone1 = new Milestone(await jackpot.getMilestoneForId(milestone1)).totalFuelAdded;
+        const totalFuelInMilestone2 = new Milestone(await jackpot.getMilestoneForId(milestone2)).totalFuelAdded;
+        const totalFuelInMilestone3 = new Milestone(await jackpot.getMilestoneForId(milestone3)).totalFuelAdded;
+        const totalFuelTracked = new BN(totalFuelInMilestone1).add(new BN(totalFuelInMilestone2)).add(new BN(totalFuelInMilestone3))
+        assert.equal(totalFuel.toString(),totalFuelTracked , 'fuel added not tracked correctly');
+
+        await Promise.all(
+            users.map(user => checkUsersFuels(user))
         )
     });
 });

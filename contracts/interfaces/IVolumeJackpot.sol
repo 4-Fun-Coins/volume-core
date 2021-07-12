@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: GPLV3
 pragma solidity ^0.8.4;
 
-struct MileStone {
-    uint256 startBlock;
-    uint256 endBlock;
-    string name;
-    uint256 amountInPot;
-}
+import '../data/structs.sol';
 
 interface IVolumeJackpot {
 
@@ -14,7 +9,7 @@ interface IVolumeJackpot {
 
     function setWinnersForMilestone ( uint milestoneId_ , address[] memory winners_ , uint256[] memory amounts_) external;
 
-    function deposit (uint256 amount_, address creditsTo_) external;
+    function deposit (uint256 amount_,uint fuelContributed_, address creditsTo_) external;
 
     function depositIntoMilestone (uint256 amount_ , uint256 milestoneId_) external;
 
@@ -35,6 +30,8 @@ interface IVolumeJackpot {
     function getClaimableAmount (address user_) external view returns (uint256 claimableAmount);
 
     function getAllParticipantsInMilestone (uint256 milestoneId_) external view returns(address[] memory);
+
+    function getFuelAddedInMilestone (uint256 milestoneId_ , address participant_) external view returns (uint256);
 
     function getParticipationAmountInMilestone (uint256 milestoneId_ , address participant_) external view returns (uint256);
 
