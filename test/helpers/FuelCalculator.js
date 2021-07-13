@@ -5,7 +5,7 @@ module.exports = {
         const toBeBurned = fuelAmount.div(new BN('2'));
         const toBeSentToJackpot = fuelAmount.sub(toBeBurned);
 
-        const fuel = toBeBurned.mul(BASE).mul(BASE).div(totalSupply.sub(toBeBurned)).div(BASE).mul(new BN('240'));
+        const fuel = toBeBurned.mul(BASE).mul(BASE).div(totalSupply.sub(toBeBurned)).div(BASE).mul(new BN('300'));
         const fuelToBEAdded = currentFuel.mul(fuel).div(BASE);
 
         return {
