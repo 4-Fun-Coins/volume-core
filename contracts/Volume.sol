@@ -392,7 +392,7 @@ contract Volume is ERC20, ReentrancyGuard {
 
         uint volumeToBeBurned = refuelAmount_ / 2; // half is burned and the other half is sent to jackpot
         // Calculate the % of supply that gets refueled
-        uint256 fuel = volumeToBeBurned.mul(BASE).mul(BASE) / (totalSupply() - volumeToBeBurned) / BASE * 240;
+        uint256 fuel = volumeToBeBurned.mul(BASE).mul(BASE) / (totalSupply() - volumeToBeBurned) / BASE * 300;
 
         uint256 fuelToBeAdded = fuelTank * fuel / BASE;
         uint index = userIndex[fueler_];
