@@ -66,10 +66,10 @@ contract('VolumeJackpot', async (accounts) => {
             {from: multisig}
         );
         
-        await escrow.sendVolForPorpuse(0, idoAllocation , multisig);
-        await escrow.sendVolForPorpuse(2, rewardsAllocation , multisig);
-        await escrow.sendVolForPorpuse(3, devAllocation , multisig);
-        await escrow.sendVolForPorpuse(4, marketingAllocation , multisig);
+        await escrow.sendVolForPurpose(0, idoAllocation , multisig);
+        await escrow.sendVolForPurpose(2, rewardsAllocation , multisig);
+        await escrow.sendVolForPurpose(3, devAllocation , multisig);
+        await escrow.sendVolForPurpose(4, marketingAllocation , multisig);
 
         const currentBlock = await volume.getBlockNumber();
         milestone1 = currentBlock.add(new BN('2'));

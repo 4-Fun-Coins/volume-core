@@ -154,7 +154,7 @@ contract('VolumeEscrow', async (accounts) => {
 
     describe('VolumeEscrow Transfers', () => {
         it('Should transfer the IDO allocation and substract it from allocation', async function(){
-            await escrow.sendVolForPorpuse(0 , idoAllocation , account1);
+            await escrow.sendVolForPurpose(0 , idoAllocation , account1);
             const balance = await volume.balanceOf(account1);
             assert.equal(balance , idoAllocation , `expected balance of ${account1} to be ${idoAllocation} but it was ${balance}`);
             const left = await escrow.getAllocation(0);
@@ -163,21 +163,21 @@ contract('VolumeEscrow', async (accounts) => {
 
         it('Should fail when trying to transfer the LP allocation', async function(){
             await truffleAssert.reverts(
-                escrow.sendVolForPorpuse(1 , lpAllocation , account1),
+                escrow.sendVolForPurpose(1 , lpAllocation , account1),
                 `The liquidity allocation can only be used by the LP creation function`
             )
         });
 
         it('Should fail when sending amount bigger than allocation', async function(){
             await truffleAssert.reverts(
-                escrow.sendVolForPorpuse(2 , lpAllocation , account1), // should fail because allocation of rewards is only 100mils
+                escrow.sendVolForPurpose(2 , lpAllocation , account1), // should fail because allocation of rewards is only 100mils
                 `VolumeEscrow: amount is bigger than allocation`
             )
         });
 
         it('Should fail when calling sendForPurpose from non owner', async function(){
             await truffleAssert.reverts(
-                escrow.sendVolForPorpuse(2 , rewardsAllocation , account1 , {from: account2}),
+                escrow.sendVolForPurpose(2 , rewardsAllocation , account1 , {from: account2}),
                 `Ownable: caller is not the owner`
             )
         });

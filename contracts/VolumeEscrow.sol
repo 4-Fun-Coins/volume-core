@@ -97,7 +97,7 @@ contract VolumeEscrow is VolumeOwnable , ReentrancyGuard  {
     ex 0 can send only to bakery 
         1 can only send to bakryROuter etc ...
     */
-    function sendVolForPorpuse (uint id_ , uint256 amount_, address to_) external onlyOwner {
+    function sendVolForPurpose (uint id_ , uint256 amount_, address to_) external onlyOwner {
         require(id_ != 1 , "The liquidity allocation can only be used by the LP creation function");
         require(_allocations[id_] >= amount_ , 'VolumeEscrow: amount is bigger than allocation');
         uint currentBalance = IBEP20(volume).balanceOf(address(this));

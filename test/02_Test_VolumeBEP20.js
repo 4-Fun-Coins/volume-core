@@ -60,10 +60,10 @@ contract('VolumeBEP20', async (accounts) => {
     describe('Volume BEP20: deployement and basic functions', async function(){
 
         it('should transfer allocations from escrow to multisig', async function(){
-            await escrow.sendVolForPorpuse(0, idoAllocation , multisig);
-            await escrow.sendVolForPorpuse(2, rewardsAllocation , multisig);
-            await escrow.sendVolForPorpuse(3, devAllocation , multisig);
-            await escrow.sendVolForPorpuse(4, marketingAllocation.sub(toWeiBN('1000')) , multisig);
+            await escrow.sendVolForPurpose(0, idoAllocation , multisig);
+            await escrow.sendVolForPurpose(2, rewardsAllocation , multisig);
+            await escrow.sendVolForPurpose(3, devAllocation , multisig);
+            await escrow.sendVolForPurpose(4, marketingAllocation.sub(toWeiBN('1000')) , multisig);
     
             const balance = await volume.balanceOf(multisig);
             const expectedBalance = idoAllocation
@@ -570,7 +570,7 @@ contract('VolumeBEP20', async (accounts) => {
             assert(transfered, "should transfer"); // escrow receives
             
             await truffleAssert.reverts(
-                escrow.sendVolForPorpuse(4, toWeiBN('100'),user1),
+                escrow.sendVolForPurpose(4, toWeiBN('100'),user1),
                 'Crashed - please redeem your tokens on escrow'
             );
                

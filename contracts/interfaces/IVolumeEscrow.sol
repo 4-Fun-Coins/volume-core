@@ -6,7 +6,7 @@ interface IVolumeEscrow {
 
     function initialize ( uint256[] memory allocations_ , address volumeAddress_) external;
  
-    function sendVolForPorpuse (uint id_ , uint256 amount_, address to_) external;
+    function sendVolForPurpose (uint id_ , uint256 amount_, address to_) external;
 
     function addLPCreator(address newLpCreator_) external;
 
