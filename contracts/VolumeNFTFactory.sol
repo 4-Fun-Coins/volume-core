@@ -60,15 +60,16 @@ contract VolumeNFTFactory is Context, IERC721Receiver {
       * The {_URI} will then be set to {"path/to/images"}.
       * Please see {EnumerableNFT.sol-_baseURI}
      */
-    function addCategory(string memory _name, string memory _symbol, uint256 _numTokens, string memory _URI, uint256 _basePrice) external {
+    function addCategory(string memory _name, string memory _symbol, uint256 _numTokens, uint256[] memory levels, string memory _URI, uint256 _basePrice) external {
         require (_msgSender() == owner);
+        require(levels.length == _numTokens, "Number of tokens do not match number of levels");
 
         EnumerableNFT newNFT = new EnumerableNFT(_name, _symbol, _URI);
 
         categories.push(Category(_name, address(newNFT), categories.length, _basePrice, _numTokens));
 
         for (uint256 i = 0; i < _numTokens; i++) {
-            newNFT.mintNew(address(this));
+            newNFT.mintNew(address(this), levels[i]);
         }
     }
 

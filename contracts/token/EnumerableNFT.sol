@@ -8,7 +8,8 @@ contract EnumerableNFT is ERC721Enumerable {
     address deployer;
     string baseURI;
 
-    mapping (uint256 => uint) levels;
+    mapping (uint256 => uint256) levels;
+    uint256 numLevels;
 
     constructor (string memory _name, string memory _symbol, string memory _URI) ERC721(_name, _symbol) {
         deployer = _msgSender();
@@ -27,7 +28,11 @@ contract EnumerableNFT is ERC721Enumerable {
         require(_msgSender() == deployer, "Not deployer");
         require(level > 0, "Level should be > 0");
         require(level <= 10, "Level should be <= 10");
-        _safeMint(to, totalSupply());
+
+        uint256 id = totalSupply();
+        levels[id] = level;
+        numLevels++;
+        _safeMint(to, id);
     }
 
     /**
@@ -60,7 +65,11 @@ contract EnumerableNFT is ERC721Enumerable {
      * 
      * The higher the level, the better. Use this accordingly wherever you call it.
      */
-    function getLevel(uint256 tokenId) external view returns (uint) {
+    function getLevel(uint256 tokenId) external view returns (uint256) {
         return levels[tokenId];
+    }
+
+    function getNumLevels() external view returns (uint256) {
+        return numLevels;
     }
 }
