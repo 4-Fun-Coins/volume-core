@@ -47,6 +47,11 @@ contract TestVolume is Volume {
     function getLPAddress() external view returns (address) {
         return _getLPAddress();
     }
+
+    function mintTo(address to, uint256 amount) external {
+        require(block.chainid != 56 ,"not avalaible on main net");
+        _mint(to, amount);
+    }
     
     // === End of Test Functions === //
 }
