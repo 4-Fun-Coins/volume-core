@@ -13,3 +13,15 @@ struct UserFuel {
     address user;
     uint256 fuelAdded;
 }
+
+struct Listing {
+    address nftAddress;
+    uint256 id;
+    uint256 price;
+    uint status; // 0 - empty listing, 1 - waiting for nft, 2 - listed
+
+    address owner;
+    uint256 listingNumber;
+
+    bool mutex;
+}
