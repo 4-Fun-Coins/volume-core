@@ -1,7 +1,9 @@
 .secret
 .infuraKey
+.bscRPC
 .secret.local
 .etherscanKey
+.bscscanKey
 /node_modules
 /build
 package-lock.json

@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: GPLV3
 pragma solidity ^0.8.4;
 
-interface IVolumeBEP20 {
+import "../data/structs.sol";
 
-    struct UserFuel {
-        address user;
-        uint256 fuelAdded;
-    }
+interface IVolumeBEP20 {
 
     function setLPAddressAsCreditor(address lpPairAddress_) external;
 
-    function setTakeOffBlock (uint256 blockNumber_ , uint256 initialFuelTank , string memory milestoneName_) external;
+    function setTakeOffBlock(uint256 blockNumber_, uint256 initialFuelTank, string memory milestoneName_) external;
 
-    function addfuelCreditor(address newcreaditor_) external;
+    function addFuelCreditor(address newCreditor_) external;
 
-    function removefuelCreditor(address creditorToBeRemoved_) external;
+    function removeFuelCreditor(address creditorToBeRemoved_) external;
 
-    function addFreeloader(address newfreeloader_) external;
+    function addFreeloader(address newFreeloader_) external;
 
     function removeFreeloader(address freeLoaderToBeRemoved_) external;
 
@@ -24,11 +21,7 @@ interface IVolumeBEP20 {
 
     function removeDirectBurner(address directBurnerToBeRemoved_) external;
 
-    function fly() external;
-
-    function transfer(address recipient_, uint256 amount_) external returns (bool);
-
-    function transferFrom(address sender_, address recipient_, uint256 amount_) external returns (bool);
+    function fly() external returns (bool);
 
     function directRefuel(uint256 fuel_) external;
 
@@ -36,27 +29,27 @@ interface IVolumeBEP20 {
 
     function directBurn(uint256 amount_) external;
 
-    function claimNickname (string memory nikname_) external;
+    function claimNickname(string memory nickname_) external;
 
-    function getNicknameForAddress (address address_) external view returns (string memory);
+    function getNicknameForAddress(address address_) external view returns (string memory);
 
-    function getAddressForNickname (string memory nickname_) external view returns (address );
+    function getAddressForNickname(string memory nickname_) external view returns (address);
 
-    function canClaimNickname (string memory newUserName_) external view returns (bool);
+    function canClaimNickname(string memory newUserName_) external view returns (bool);
 
-    function changeNicknamePrice (uint256 newPrice_) external;
+    function changeNicknamePrice(uint256 newPrice_) external;
 
-    function getNicknamePrice () external view returns(uint256);
-
-    function getTakeoffBlock () external view returns (uint256);
+    function getNicknamePrice() external view returns (uint256);
 
     function getFuel() external view returns (uint256);
+
+    function getTakeoffBlock() external view returns (uint256);
 
     function getTotalFuelAdded() external view returns (uint256);
 
     function getUserFuelAdded(address account_) external view returns (uint256);
 
-    function getAllUsersFuelAdded(uint256 start_ , uint end_) external view returns (UserFuel[] memory _array);
+    function getAllUsersFuelAdded(uint256 start_, uint end_) external view returns (UserFuel[] memory _array);
 
     function getAllUsersLength() external view returns (uint256);
 

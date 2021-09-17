@@ -48,12 +48,12 @@ library SafeBEP20 {
     }
 
     function safeDecreaseAllowance(IBEP20 token, address spender, uint256 value) internal {
-        unchecked {
-            uint256 oldAllowance = token.allowance(address(this), spender);
-            require(oldAllowance >= value, "SafeBEP20: decreased allowance below zero");
-            uint256 newAllowance = oldAllowance - value;
-            _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
-        }
+    unchecked {
+        uint256 oldAllowance = token.allowance(address(this), spender);
+        require(oldAllowance >= value, "SafeBEP20: decreased allowance below zero");
+        uint256 newAllowance = oldAllowance - value;
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+    }
     }
 
     /**
@@ -68,7 +68,7 @@ library SafeBEP20 {
         // the target address contains contract code and also asserts for success in the low-level call.
 
         bytes memory returndata = address(token).functionCall(data, "SafeBEP20: low-level call failed");
-        if (returndata.length > 0) { // Return data is optional
+        if (returndata.length > 0) {// Return data is optional
             // solhint-disable-next-line max-line-length
             require(abi.decode(returndata, (bool)), "SafeBEP20: BEP20 operation did not succeed");
         }

@@ -4,36 +4,39 @@ pragma solidity ^0.8.4;
 
 interface IVolumeEscrow {
 
-    function initialize ( uint256[] memory allocations_ , address volumeAddress_) external;
- 
-    function sendVolForPorpuse (uint id_ , uint256 amount_, address to_) external;
+    function initialize(uint256[] memory allocations_, address volumeAddress_) external;
+
+    function sendVolForPurpose(uint id_, uint256 amount_, address to_) external;
 
     function addLPCreator(address newLpCreator_) external;
 
     function removeLPCreator(address lpCreatorToRemove_) external;
 
-    function createLPWBNBFromSender ( uint256 amount_ , uint slipage_) external;
+    function createLPWBNBFromSender(uint256 amount_, uint slippage) external;
 
-    function createLPFromWBNBBalance (uint slipage_) external;
+    function createLPFromWBNBBalance(uint slippage) external;
 
-    function rugPullSimulation (uint slipage_) external;
+    function rugPullSimulation(uint slippage_) external;
 
-    function redeemVolAfterRugPull (uint256 amount_ , address to_) external ;
+    function redeemVolAfterRugPull(uint256 amount_, address to_) external;
 
-    function transferToken (address token_ , uint256 amount_ , address to_) external;
+    function transferToken(address token_, uint256 amount_, address to_) external;
 
-    function setLPAddress (address poolAddress_) external;
+    function setLPAddress(address poolAddress_) external;
 
-    function setVolumeJackpot (address volumeJackpotAddress_) external;
+    function setVolumeJackpot(address volumeJackpotAddress_) external;
 
-    function getLPAddress () external view returns (address);
+    function isLPCreator(address potentialLPCreator_) external returns (bool);
 
-    function getVolumeAddress () external view returns (address);
+    function getLPAddress() external view returns (address);
 
-    function getJackpotAddress () external view returns (address);
+    function getVolumeAddress() external view returns (address);
 
-    function getAllocation (uint id_) external view returns (uint256);
+    function getJackpotAddress() external view returns (address);
 
-    function estimateRedeamOutForIn(uint256 amountIn_) external view returns (uint);
+
+    function getAllocation(uint id_) external view returns (uint256);
+
+    function estimateRedeemOutForIn(uint256 amountIn_) external view returns (uint);
 }
 
