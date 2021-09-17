@@ -10,11 +10,11 @@ import "../Volume.sol";
 
 contract TestVolume is Volume {
     uint256 private lastBlock;
-    constructor (address escrowAcc, address mulitisig ,address volumeJackpot) Volume(escrowAcc , mulitisig,volumeJackpot) {}
+    constructor (address escrowAcc, address mulitisig, address volumeJackpot) Volume(escrowAcc, mulitisig, volumeJackpot) {}
 
     // === Test Functions === //
-    // we use this to push blocks forward in local envirements 
-    function updateBlock() external returns(uint256) {
+    // we use this to push blocks forward in local environments
+    function updateBlock() external returns (uint256) {
         lastBlock = block.number;
         return lastBlock;
     }
@@ -22,7 +22,7 @@ contract TestVolume is Volume {
     function getCurrentBlock() external view returns (uint256){
         return block.number;
     }
-    
+
     function getLastRefuel() external view returns (uint256) {
         return lastRefuel;
     }
@@ -36,17 +36,17 @@ contract TestVolume is Volume {
     }
 
     function setFuelTank(uint256 newFuel) external {
-        require(block.chainid != 56 ,"not avalaible on main net");
+        require(block.chainid != 56, "not available on main net");
         fuelTank = newFuel;
     }
 
     function getEscrowAddress() external view returns (address) {
         return escrow;
     }
-    
+
     function getLPAddress() external view returns (address) {
         return _getLPAddress();
     }
-    
+
     // === End of Test Functions === //
 }
