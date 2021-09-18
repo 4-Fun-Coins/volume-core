@@ -1,8 +1,12 @@
 const VolumeEscrow = artifacts.require("VolumeEscrow");
-const Volume = artifacts.require("TestVolume"); // TODO change this in production
+const TestVolume = artifacts.require("TestVolume");
+const Volume = artifacts.require("Volume");
 const VolumeJackpot = artifacts.require("VolumeJackpot");
 
 module.exports = function (deployer, network, accounts) {
-
-    deployer.deploy(Volume, VolumeEscrow.address, accounts[0], VolumeJackpot.address)
+    if(network != 'BSCMainNet'){
+        deployer.deploy(TestVolume, VolumeEscrow.address, accounts[0], VolumeJackpot.address)
+    } else {
+        deployer.deploy(Volume, VolumeEscrow.address, accounts[0], VolumeJackpot.address)
+    }
 };
