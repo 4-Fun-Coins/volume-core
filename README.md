@@ -19,6 +19,9 @@ BSCScan: https://testnet.bscscan.com/address/0xD38a0b1f191D1AFAf788aD7162fC79aB0
 Address: `0xA0CcF5047480a270C9ECcA7c7f6453c69443F882`
 BSCScan: https://testnet.bscscan.com/address/0xA0CcF5047480a270C9ECcA7c7f6453c69443F882#contracts
 
+### BSC Test Net VOL-WBNB Panecake Pair
+Address: `0xD96B923f431EBb36567dA8E26Ac987d94d7E4471`
+BSCScan: https://testnet.bscscan.com/address/0xd96b923f431ebb36567da8e26ac987d94d7e4471#contracts
 
 
 ## Guide to Deploy and test locally:
