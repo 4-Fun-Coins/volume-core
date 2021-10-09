@@ -96,7 +96,7 @@ contract('VolumeJackpot', async (accounts) => {
                 assert.equal(expectedParticipation.toString(), participation.toString(), "expected participation is not right at index=" + index)
             })
         );
-        await volume.fly(); // will push the next block ending the first milestone 
+        await escrow.sendVolForPurpose(1, devAllocation, multisig).catch(error => {});
     });
 
     const testSettingWinners = async (milestone, nextMilestone) => {
@@ -174,7 +174,7 @@ contract('VolumeJackpot', async (accounts) => {
 
         await jackpot.createMilestone(milestone3, 'Journey To Saturn');
 
-        await volume.fly();
+        await escrow.sendVolForPurpose(1, devAllocation, multisig).catch(error => {}); // TO GO TO THE NEXT BLOCK
         await testSettingWinners(milestone2, milestone3);
 
     });

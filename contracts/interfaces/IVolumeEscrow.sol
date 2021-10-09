@@ -16,10 +16,6 @@ interface IVolumeEscrow {
 
     function createLPFromWBNBBalance(uint slippage) external;
 
-    function rugPullSimulation(uint slippage_) external;
-
-    function redeemVolAfterRugPull(uint256 amount_, address to_) external;
-
     function transferToken(address token_, uint256 amount_, address to_) external;
 
     function setLPAddress(address poolAddress_) external;
@@ -33,7 +29,6 @@ interface IVolumeEscrow {
     function getVolumeAddress() external view returns (address);
 
     function getJackpotAddress() external view returns (address);
-
 
     function getAllocation(uint id_) external view returns (uint256);
 

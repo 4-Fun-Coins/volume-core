@@ -19,8 +19,6 @@ interface IVolumeJackpot {
 
     function removeDepositor(address depositorToBeRemoved_) external;
 
-    function burnItAfterCrash() external;
-
     function isDepositor(address potentialDepositor_) external view returns (bool);
 
     function getPotAmountForMilestone(uint256 milestoneId_) external view returns (uint256);

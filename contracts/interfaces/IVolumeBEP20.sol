@@ -21,8 +21,6 @@ interface IVolumeBEP20 {
 
     function removeDirectBurner(address directBurnerToBeRemoved_) external;
 
-    function fly() external returns (bool);
-
     function directRefuel(uint256 fuel_) external;
 
     function directRefuelFor(uint256 fuel_, address fuelFor_) external;
@@ -48,10 +46,6 @@ interface IVolumeBEP20 {
     function getTotalFuelAdded() external view returns (uint256);
 
     function getUserFuelAdded(address account_) external view returns (uint256);
-
-    function getAllUsersFuelAdded(uint256 start_, uint end_) external view returns (UserFuel[] memory _array);
-
-    function getAllUsersLength() external view returns (uint256);
 
     function isFuelCreditor(address potentialCreditor_) external view returns (bool);
 

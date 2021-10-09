@@ -63,15 +63,10 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
         _;
     }
 
-    modifier onlyWhenFlying(){
-        require(IVolumeBEP20(IVolumeEscrow(escrow).getVolumeAddress()).getFuel() > 0, "VolumeJackpot");
-        _;
-    }
-
     /**
         @dev creates a new milestone at the start block , this will end the previous milestone at the startBlock-1
      */
-    function createMilestone(uint256 startBlock_, string memory milestoneName_) override external onlyWhenFlying {
+    function createMilestone(uint256 startBlock_,string memory milestoneName_) override external {
         require(_msgSender() == owner() || _msgSender() == IVolumeEscrow(escrow).getVolumeAddress(), "VolumeJackpot: only owner or volume BEP20 can call");
         require(block.number < startBlock_, "VolumeJackpot: start block needs to be in to future ");
         if (milestones.length == 1) {
@@ -95,7 +90,7 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
         third place: 10%
         rest of participants 50% / rest 
     */
-    function setWinnersForMilestone(uint milestoneId_, address[] memory winners_, uint256[] memory amounts_) override external onlyOwner onlyWhenFlying {
+    function setWinnersForMilestone(uint milestoneId_, address[] memory winners_, uint256[] memory amounts_) override external onlyOwner {
         require(milestoneIndex[milestoneId_] != 0, "VolumeJackpot: This milestone does not exist");
         require(milestones[milestoneIndex[milestoneId_]].endBlock < block.number, "VolumeJackpot: milestone is not over yet");
 
@@ -122,7 +117,7 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
         @dev Deposits amount_ to active milestone's jackpot and gives its credit to creditsTo_
          fuelContributed_ is the amounts of blocks this deposit has added (used for stats and other calculations)
      */
-    function deposit(uint256 amount_, uint fuelContributed_, address creditsTo_) override external nonReentrant onlyDepositors onlyWhenFlying {
+    function deposit(uint256 amount_, uint fuelContributed_, address creditsTo_) override external nonReentrant onlyDepositors {
         require(IVolumeEscrow(escrow).getVolumeAddress() != address(0), "VolumeJackpot: volume BEP20 address was not set yet");
         IBEP20(IVolumeEscrow(escrow).getVolumeAddress()).safeTransferFrom(_msgSender(), address(this), amount_);
 
@@ -147,7 +142,7 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
         could be useful if we decide to use a portion of the marketing or  reward volume allocation as an incentive
         by adding it to the next milestone reward
      */
-    function depositIntoMilestone(uint256 amount_, uint256 milestoneId_) override external onlyDepositors onlyWhenFlying {
+    function depositIntoMilestone(uint256 amount_, uint256 milestoneId_) override external onlyDepositors {
         require(milestoneIndex[milestoneId_] != 0, 'VolumeJackPot: milestone does not exist');
         require(milestones[milestoneIndex[milestoneId_]].endBlock >= block.number, "VolumeJackPot: milestone already passed");
 
@@ -160,7 +155,7 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
     /**
         claims the pending rewards for this user
      */
-    function claim(address user_) override external onlyWhenFlying {
+    function claim(address user_) override external {
         require(milestones.length > 1, "VolumeJackpot: no milestone set");
 
         uint256 amountOut;
@@ -189,18 +184,6 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
      */
     function removeDepositor(address depositorToBeRemoved_) override external onlyOwner {
         depositors[depositorToBeRemoved_] = false;
-    }
-
-    /**
-        can only be called by escrow and can only be called when we crash 
-        will burn all the balance we have here any unclaimed winnings will be lost for ever
-     */
-    function burnItAfterCrash() override external {
-        require(_msgSender() == escrow || _msgSender() == owner(), "VolumeJackpot: only escrow or owner can call this ");
-        require(IVolumeBEP20(IVolumeEscrow(escrow).getVolumeAddress()).getFuel() == 0, "VolumeJackpot: we have not crashed yet");
-        uint256 balance = IBEP20(IVolumeEscrow(escrow).getVolumeAddress()).balanceOf(address(this));
-        if (balance > 0)
-            IVolumeBEP20(IVolumeEscrow(escrow).getVolumeAddress()).directBurn(balance);
     }
 
     /**
@@ -241,7 +224,7 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
         return participantsAmounts[milestoneId_][participant_];
     }
 
-    function getFuelAddedInMilestone(uint256 milestoneId_, address participant_) override external view returns (uint256){
+    function getFuelAddedInMilestone(uint256 milestoneId_, address participant_) override public view returns (uint256){
         return participantsAddedFuel[milestoneId_][participant_];
     }
 
@@ -296,15 +279,15 @@ contract VolumeJackpot is VolumeOwnable, ReentrancyGuard, IVolumeJackpot {
         return milestones[0];
     }
 
-    function _createMilestone(uint256 start, string memory name) internal {
+    function _createMilestone(uint256 start_, string memory name_) internal {
         milestones.push(
             MileStone(
-                start,
+                start_,
                 MAX_INT_TYPE,
-                name,
+                name_,
                 0,
                 0
             ));
-        milestoneIndex[start] = milestones.length - 1;
+        milestoneIndex[start_] = milestones.length - 1;
     }
 }

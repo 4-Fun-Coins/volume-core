@@ -40,17 +40,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
     // these addresses can call directBurn to burn from their balances 
     mapping(address => bool) private _directBurners;
 
-    //mapping (address => uint256) private userFuelAdded;
-    /**
-    Changed this to an array with mapped indexes to make it easy to sort 
-    we can retrieve a range or a single address from the array
-    we can't get a leader board from the mapping Unless we index it off-chain
-    this way we don't have to index it off chain
-     */
-    mapping(address => uint) private userIndex;
-
-    UserFuel[] userAddedFuel;
-
     address immutable escrow;
 
     address immutable multiSig;
@@ -58,6 +47,7 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
     address immutable volumeJackpot;
 
     uint256 private _nicknamePrice = 2000 * BASE;
+    uint256 private _initialFuelTank;
 
     mapping(address => string) private _addressesNicknames;
     mapping(string => address) private _nicknamesAddresses;
@@ -70,9 +60,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
 
     constructor (address escrow_, address multiSig_, address volumeJackpot_) ERC20("Volume", "VOL") {
         _mint(escrow_, 1000000000 * BASE);
-        // TODO: mint all supply to escrow in production
-        //takeoffBlock = 0;
-        //lastRefuel = 0;
         fuelTank = 2592000 * BASE;
         // This should be 3 months will be changed when the takeoff block is set
 
@@ -86,7 +73,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
         multiSig = multiSig_;
         volumeJackpot = volumeJackpot_;
 
-        userAddedFuel.push(UserFuel(address(0), 0));
         _freeloaders[escrow_] = true;
         // escrow is a freeloader
         _freeloaders[volumeJackpot_] = true;
@@ -101,19 +87,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
     }
 
     /**
-        throws if we aren't flying and the sender isn't LP pr the receiver isn't the escrow
-        if we crash LP pool can still send so people can withdraw their liquidity but it can no longer receive
-        escrow can still receive so people can redeem their VOL for the underlying WBNB
-     */
-    modifier flying(address sender_, address recipient_) {
-        if (!fly()) {// actually make the calculation here and now
-            // We crashed, the only transfers we allow is to escrow OR from LP pool
-            require(recipient_ == escrow || sender_ == _getLPAddress(), 'Crashed - please redeem your tokens on escrow');
-        }
-        _;
-    }
-
-    /**
      * @dev Throws if called by any account other specified the caller
      */
     modifier onlyIfCallerIs(address allowedCaller_) {
@@ -121,37 +94,18 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
         _;
     }
 
-    /**
-        Will use fuel from the tank to cover the blocks we traveled from last time
-        also returns a bool based on weather we crashed or not
-    */
-    function fly() override public returns (bool) {
-        if (!_tookOff()) return true;
-        // we did not take off yet
-
-        uint256 blocksTravelled = (block.number * BASE) - lastRefuel;
-
-        if (blocksTravelled / BASE > fuelTank / BASE) {//fractions of a block won't count
-            fuelTank = 0;
-            return false;
-        } else {
-            fuelTank -= blocksTravelled;
-            lastRefuel = block.number * BASE;
-            return true;
-        }
-    }
-
     function setLPAddressAsCreditor(address lpPairAddress_) onlyIfCallerIs(escrow) override external {
         _fuelCreditors[lpPairAddress_] = true;
     }
 
-    function setTakeOffBlock(uint256 blockNumber_, uint256 initialFuelTank, string memory milestoneName_) override external onlyIfCallerIs(multiSig) {
+    function setTakeOffBlock(uint256 blockNumber_, uint256 initialFuelTank_, string memory milestoneName_) override external onlyIfCallerIs(multiSig) {
         require(!_tookOff(), "You can only set the takeoffBlock once");
         require(blockNumber_ > block.number, "takeoff need to be in the future");
         takeoffBlock = blockNumber_ * BASE;
         lastRefuel = blockNumber_ * BASE;
         // this will be the block where
-        fuelTank = initialFuelTank * BASE;
+        fuelTank = initialFuelTank_ * BASE;
+        _initialFuelTank = initialFuelTank_ * BASE;
         IVolumeJackpot(volumeJackpot).createMilestone(blockNumber_, milestoneName_);
     }
 
@@ -211,7 +165,7 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
      * - `recipient_` cannot be the zero address.
      * - the caller must have a balance of at least `amount_`.
      */
-    function transfer(address recipient_, uint256 amount_) flying(_msgSender(), recipient_) public virtual override returns (bool) {
+    function transfer(address recipient_, uint256 amount_) public virtual override returns (bool) {
         if (!_tookOff()) {// if we did not launch yet behave like a normal BEP20
             _transfer(_msgSender(), recipient_, amount_);
             return true;
@@ -233,7 +187,7 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
      * - the caller must have allowance for ``sender_``'s tokens of at least
      * `amount_`.
      */
-    function transferFrom(address sender_, address recipient_, uint256 amount_) flying(sender_, recipient_) public virtual override returns (bool) {
+    function transferFrom(address sender_, address recipient_, uint256 amount_) public virtual override returns (bool) {
         // check allowance 
         uint256 currentAllowance = allowance(sender_, _msgSender());
         require(currentAllowance >= amount_, "BEP20: transfer amount exceeds allowance");
@@ -256,7 +210,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
      */
     function directRefuel(uint256 fuel_) override external {
         require(_tookOff(), "Volume: You can't fuel before take off");
-        require(fly(), "Volume: We crashed can't fuel any more");
 
         _refuel(_msgSender(), _msgSender(), fuel_);
     }
@@ -266,7 +219,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
     */
     function directRefuelFor(uint256 fuel_, address fuelFor_) override external {
         require(_tookOff(), "Volume: You can't fuel before take off");
-        require(fly(), "Volume: We crashed can't fuel any more");
 
         _refuel(_msgSender(), fuelFor_, fuel_);
     }
@@ -290,7 +242,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
      */
     function claimNickname(string memory nickname_) override external {
         require(_tookOff(), 'Volume: we are not flying yet');
-        require(fly(), "Volume: we crashed you can't claim nickname now");
         require(_nicknamesAddresses[nickname_] == address(0), "Nickname already claimed");
         require(bytes(nickname_).length > 0, "Volume: user name can't be empty string");
 
@@ -352,29 +303,12 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
         return totalFuelAdded;
     }
 
-    function getUserFuelAdded(address account_) override external view returns (uint256) {
-        uint index = userIndex[account_];
-        if (index > 0)
-            return userAddedFuel[index].fuelAdded;
-        return 0;
-    }
-
-    function getAllUsersFuelAdded(uint256 start_, uint end_) override external view returns (UserFuel[] memory _array) {
-        require(start_ < userAddedFuel.length, 'start is bigger than the length');
-
-        if (end_ >= userAddedFuel.length)
-            end_ = userAddedFuel.length - 1;
-
-        _array = new UserFuel[]((end_ + 1) - start_);
-
-        for (uint i = start_; i <= end_; i++) {
-            _array[i - start_] = userAddedFuel[i];
+    function getUserFuelAdded(address account_) override external view returns (uint256 fuelAdded) {
+        MileStone[] memory milestones = IVolumeJackpot(volumeJackpot).getAllMilestones();
+        for(uint i = 1 ; i < milestones.length; i++){
+            fuelAdded = fuelAdded + IVolumeJackpot(volumeJackpot).getFuelAddedInMilestone(milestones[i].startBlock, account_);
         }
-    }
-
-    function getAllUsersLength() override external view returns (uint256) {
-        return userAddedFuel.length;
-    }
+    }   
 
     function isFuelCreditor(address potentialCreditor_) override external view returns (bool){
         return _fuelCreditors[potentialCreditor_];
@@ -389,13 +323,6 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
     }
 
     function _refuel(address deductedFrom_, address fueler_, uint256 refuelAmount_) private {
-        if (!fly()) {
-            // if we crashed burn all allocation (this will only trigger from people withdrawing liquidity from LP pool)
-            // so when they withdraw they still fuel but all fuel will be burnt and none of it goes to the jackpot
-            // This does not mean all the withdrawal from poll will be burnt only the transaction fee 0.1% is burnt
-            _burn(deductedFrom_, refuelAmount_);
-            return;
-        }
         require(!_freeloaders[fueler_], "Volume: freeloaders can not take credit for fuel");
         require(!_fuelCreditors[fueler_], "Volume: fuelCreditors can not take credit for fuel");
 
@@ -403,31 +330,39 @@ contract Volume is ERC20, ReentrancyGuard, IVolumeBEP20 {
         // half is burned and the other half is sent to jackpot
         // Calculate the % of supply that gets refueled
         uint256 fuel = volumeToBeBurned.mul(BASE).mul(BASE) / (totalSupply() - volumeToBeBurned) / BASE * 300;
+        
+        uint256 fuelToBeAdded = _initialFuelTank.mul(fuel).div(BASE);
 
-        uint256 fuelToBeAdded = fuelTank * fuel / BASE;
-        uint index = userIndex[fueler_];
-        if (index <= 0) {
-            userAddedFuel.push(UserFuel(fueler_, 0));
-            index = userAddedFuel.length - 1;
-            userIndex[fueler_] = index;
-        }
-        userAddedFuel[index].fuelAdded += fuelToBeAdded;
         fuelTank += fuelToBeAdded;
         // Adding the accumulated full blocks from the pile to the tank
         totalFuelAdded += fuelToBeAdded;
 
-        _burn(deductedFrom_, volumeToBeBurned);
         // burn the fuel
+        _burn(deductedFrom_, volumeToBeBurned);
 
-        uint256 volumeToPot = refuelAmount_ - volumeToBeBurned;
         // prevents any precision loss
-        _transfer(deductedFrom_, address(this), volumeToPot);
-        // transfer the amount to volume
-        _approve(address(this), volumeJackpot, volumeToPot);
-        // approve the jackpot contact to spend
-        IVolumeJackpot(volumeJackpot).deposit(volumeToPot, fuelToBeAdded, fueler_);
-        // call deposit for the fueler , this will add the vol to the jackpot and adds this amount to this user's participation
+        uint256 volumeToPot = refuelAmount_ - volumeToBeBurned;
 
+        // transfer the amount to volume
+        _transfer(deductedFrom_, address(this), volumeToPot);
+
+        // approve the jackpot contact to spend
+        _approve(address(this), volumeJackpot, volumeToPot);
+
+        // call deposit for the fueler , this will add the vol to the jackpot and adds this amount to this user's participation
+        IVolumeJackpot(volumeJackpot).deposit(volumeToPot, fuelToBeAdded, fueler_);
+
+        // consume fuelTo last block
+        
+        uint256 blocksTraveled = block.number.mul(BASE) - lastRefuel;
+        if(fuelTank < blocksTraveled) {
+            lastRefuel = fuelTank + lastRefuel;
+            fuelTank = 0;
+        } else {
+            fuelTank = fuelTank - blocksTraveled;
+            lastRefuel = block.number.mul(BASE);
+        }
+        
         emit REFUEL(fueler_, fuel);
     }
 

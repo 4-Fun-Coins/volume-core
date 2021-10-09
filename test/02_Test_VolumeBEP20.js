@@ -14,7 +14,7 @@ const lpAllocation = toWeiBN('375000000');
 const rewardsAllocation = toWeiBN('100000000');
 const devAllocation = toWeiBN('100000000');
 const marketingAllocation = toWeiBN('50000000');
-
+const initialFuel = toWeiBN("2592000");
 let escrow;
 let volume;
 let jackpot;
@@ -292,11 +292,6 @@ contract('VolumeBEP20', async (accounts) => {
                 "Volume: we are not flying yet"
             )
         });
-
-        it('length of getAllUsersLength should be 0', async () => {
-            const length = await volume.getAllUsersLength();
-            assert.equal(length.toString(), '1', "expected length to be 0"); // because index 0 is occupied by address(0)
-        });
     });
 
     let takeoffBlock;
@@ -325,8 +320,6 @@ contract('VolumeBEP20', async (accounts) => {
         it('should be able to claim a nickname', async () => {
             const pastBalance = await volume.balanceOf(user1);
             const currentTotalSupply = await volume.totalSupply();
-            await volume.fly();
-            const currentFuelTank = await volume.getFuel();
 
             await volume.claimNickname('nickname', {from: user1});
 
@@ -336,12 +329,15 @@ contract('VolumeBEP20', async (accounts) => {
             assert.equal(currentNickname, 'nickname', "expected nickname do not match");
             assert.equal(nicknameOwner, user1, "expected owner of nickname is not right");
 
-            const {fuelExpected, jackpotExpected} = FuelCalculator.calculateFuel(nicknamePrice, currentTotalSupply, currentFuelTank.sub(toWeiBN('1')));
+            const {fuelExpected, jackpotExpected} = FuelCalculator.calculateFuel(nicknamePrice, currentTotalSupply, initialFuel);
 
             const suppliedFuel = await volume.getUserFuelAdded(user1);
             const jackpotContribution = await jackpot.getParticipationAmountInMilestone(takeoffBlock.toString(), user1);
 
-            assert(FuelCalculator.equalWithRoomForError(fuelExpected, suppliedFuel, eps), 'fuel is not right');
+            //assert(FuelCalculator.equalWithRoomForError(fuelExpected, suppliedFuel, eps), 'fuel is not right');
+            assert.equal(fuelExpected.toString(), suppliedFuel.toString(),
+             `fuel is not right expected : ${fuelExpected.toString()} found: ${suppliedFuel.toString()}`);
+
             assert.equal(jackpotExpected.toString(), jackpotContribution.toString(), 'jackpot deposit not right');
 
             const currentBalance = await volume.balanceOf(user1);
@@ -366,7 +362,6 @@ contract('VolumeBEP20', async (accounts) => {
         it('should deduct fuel normally and sets the right amounts of fuel and jackpot amounts', async () => {
             const pastBalance = await volume.balanceOf(user1);
             const currentTotalSupply = await volume.totalSupply();
-            const currentFuelTank = await volume.getFuel();
             const pastFuelSupplied = await volume.getUserFuelAdded(user1);
             const pastPotSupplied = await jackpot.getParticipationAmountInMilestone(takeoffBlock.toString(), user1);
 
@@ -377,9 +372,12 @@ contract('VolumeBEP20', async (accounts) => {
             const suppliedFuel = (await volume.getUserFuelAdded(user1)).sub(pastFuelSupplied);
             const jackpotContribution = (await jackpot.getParticipationAmountInMilestone(takeoffBlock.toString(), user1)).sub(pastPotSupplied);
 
-            const {fuelExpected, jackpotExpected} = FuelCalculator.calculateFuel(refuelAmount, currentTotalSupply, currentFuelTank.sub(toWeiBN('1')));
+            const {fuelExpected, jackpotExpected} = FuelCalculator.calculateFuel(refuelAmount, currentTotalSupply, initialFuel);
 
-            assert(FuelCalculator.equalWithRoomForError(fuelExpected, suppliedFuel, eps), 'fuel is not right');
+            assert.equal(fuelExpected.toString(), suppliedFuel.toString(),
+             `fuel is not right expected : ${fuelExpected.toString()} found: ${suppliedFuel.toString()} past added: ${pastFuelSupplied.toString()}`);
+
+            //assert(FuelCalculator.equalWithRoomForError(fuelExpected, suppliedFuel, eps), 'fuel is not right');
             assert.equal(jackpotExpected.toString(), jackpotContribution.toString(), 'jackpot deposit not right');
 
             const currentBalance = await volume.balanceOf(user1);
@@ -389,7 +387,6 @@ contract('VolumeBEP20', async (accounts) => {
         it('should deduct fuel for a third party normally and sets the right amounts of fuel and jackpot amounts', async () => {
             const pastBalance = await volume.balanceOf(multisig);
             const currentTotalSupply = await volume.totalSupply();
-            const currentFuelTank = await volume.getFuel();
             const pastFuelSupplied = await volume.getUserFuelAdded(user1);
             const pastPotSupplied = await jackpot.getParticipationAmountInMilestone(takeoffBlock.toString(), user1);
 
@@ -401,7 +398,7 @@ contract('VolumeBEP20', async (accounts) => {
             const jackpotContribution = (await jackpot.getParticipationAmountInMilestone(takeoffBlock.toString(), user1)).sub(pastPotSupplied);
 
             const {fuelExpected, jackpotExpected} = FuelCalculator.calculateFuel(
-                refuelAmount, currentTotalSupply, currentFuelTank.sub(toWeiBN('1')) // We traveled one block and it will be removed from the tank
+                refuelAmount, currentTotalSupply, initialFuel
             );
 
             assert(FuelCalculator.equalWithRoomForError(fuelExpected, suppliedFuel, eps), 'fuel is not right');
@@ -448,11 +445,8 @@ contract('VolumeBEP20', async (accounts) => {
             let potContributionBefore = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user2);
             let currentTotalSupply = await volume.totalSupply();
 
-            await volume.fly();
-
             await volume.transfer(creditor, toWeiBN('2000'), {from: multisig});
 
-            let currentFuelTank = await volume.getFuel();
             await volume.transfer(user2, toWeiBN('1000'), {from: creditor});
             await volume.approve(user1, toWeiBN('1000'), {from: creditor});
 
@@ -465,7 +459,7 @@ contract('VolumeBEP20', async (accounts) => {
             let potContributionAfter = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user2);
 
             let {fuelExpected, jackpotExpected} = FuelCalculator.calculateFuel(
-                refuelAmount, currentTotalSupply, currentFuelTank.sub(toWeiBN('1'))// We traveled two blocks (approve does not call _fly()) and it will be removed from the tank
+                refuelAmount, currentTotalSupply, initialFuel// We traveled two blocks (approve does not call _fly()) and it will be removed from the tank
             );
 
             assert.equal(fuelExpected.toString(), fuelAfter.sub(fuelBefore).toString(), 'expected fuel not right');
@@ -475,16 +469,13 @@ contract('VolumeBEP20', async (accounts) => {
             fuelBefore = await volume.getUserFuelAdded(user2);
             potContributionBefore = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user2);
 
-            await volume.fly(); // consume all fuel to the latest block
-            currentFuelTank = await volume.getFuel();
-
             await volume.transferFrom(creditor, user2, toWeiBN('1000'), {from: user1}); // using the transferFrom
 
             fuelAfter = await volume.getUserFuelAdded(user2);
             potContributionAfter = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user2);
 
             let expected = FuelCalculator.calculateFuel(
-                refuelAmount, currentTotalSupply, currentFuelTank.sub(toWeiBN('1'))// We traveled two blocks (approve does not call _fly()) and it will be removed from the tank
+                refuelAmount, currentTotalSupply, initialFuel
             );
 
             assert.equal(expected.fuelExpected.toString(), fuelAfter.sub(fuelBefore).toString(), 'expected fuel not right');
@@ -497,11 +488,8 @@ contract('VolumeBEP20', async (accounts) => {
             let potContributionBefore = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user3);
             let currentTotalSupply = await volume.totalSupply();
 
-            await volume.fly();
-
             await volume.transfer(user3, toWeiBN('2000'), {from: multisig});
 
-            let currentFuelTank = await volume.getFuel();
             await volume.transfer(user2, toWeiBN('1000'), {from: user3});
             await volume.approve(user1, toWeiBN('1000'), {from: user3});
 
@@ -511,7 +499,7 @@ contract('VolumeBEP20', async (accounts) => {
             let potContributionAfter = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user3);
 
             let {fuelExpected, jackpotExpected} = FuelCalculator.calculateFuel(
-                refuelAmount, currentTotalSupply, currentFuelTank.sub(toWeiBN('1'))
+                refuelAmount, currentTotalSupply, initialFuel
             );
 
             assert.equal(fuelExpected.toString(), fuelAfter.sub(fuelBefore).toString(), 'expected fuel not right');
@@ -521,87 +509,19 @@ contract('VolumeBEP20', async (accounts) => {
             fuelBefore = await volume.getUserFuelAdded(user3);
             potContributionBefore = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user3);
 
-            await volume.fly(); // consume all fuel to the latest block
-            currentFuelTank = await volume.getFuel();
-
             await volume.transferFrom(user3, user2, toWeiBN('1000'), {from: user1}); // using the transferFrom
 
             fuelAfter = await volume.getUserFuelAdded(user3);
             potContributionAfter = await jackpot.getParticipationAmountInMilestone(takeoffBlock, user3);
 
             let expected = FuelCalculator.calculateFuel(
-                refuelAmount, currentTotalSupply, currentFuelTank.sub(toWeiBN('1'))
+                refuelAmount, currentTotalSupply, initialFuel
             );
 
             assert.equal(expected.fuelExpected.toString(), fuelAfter.sub(fuelBefore).toString(), 'expected fuel not right');
             assert.equal(expected.jackpotExpected.toString(), potContributionAfter.sub(potContributionBefore).toString(), 'expected pot contribution not right');
         });
 
-        it('can crash', async () => {
-
-            await volume.transfer(mockLPAddress, toWei('10'), {from: multisig}); // we use this balance in the next test
-            await volume.transfer(freeloader, toWei('10'), {from: multisig}); // we use this balance in the next test
-            await volume.transfer(creditor, toWei('10'), {from: multisig}); // we use this balance in the next test
-            await volume.transfer(directBurner, toWei('10'), {from: multisig}); // we use this balance in the next test
-
-
-            await volume.transfer(user1, toWei('10000'), {from: multisig});
-            await volume.setFuelTank(toWei('3')); // should crash in 3 blocks 
-            await volume.transfer(user2, toWei('1'), {from: user1}); // 1 blocks left because setFuel moved a block without using fuel
-            await volume.transfer(user2, toWei('1'), {from: user1}); // 0 blocks left
-
-            await truffleAssert.reverts(
-                volume.transfer(user2, toWei('1'), {from: user1}),
-                'Crashed - please redeem your tokens on escrow'
-            );
-
-            await volume.fly();
-
-            assert.equal((await volume.getFuel()).toString(), '0', "FuelTank should be zero");
-        });
-
-        it('escrow can only receive and LP can only send after crash', async () => {
-            await truffleAssert.reverts(
-                volume.transfer(user1, toWeiBN('100')),
-                'Crashed - please redeem your tokens on escrow'
-            );
-
-            let transferred = await volume.transfer(escrow.address, toWeiBN('1'), {from: user1});
-            assert(transferred, "should transfer"); // escrow receives
-
-            await truffleAssert.reverts(
-                escrow.sendVolForPurpose(4, toWeiBN('100'), user1),
-                'Crashed - please redeem your tokens on escrow'
-            );
-
-            await truffleAssert.reverts(
-                volume.transfer(mockLPAddress, toWeiBN('1'), {from: user1}),
-                'Crashed - please redeem your tokens on escrow'
-            );
-
-            transferred = await volume.transfer(user1, toWeiBN('1'), {from: mockLPAddress});
-            assert(transferred, "should transfer"); // escrow sends
-
-            await truffleAssert.reverts(
-                volume.transfer(mockLPAddress, toWeiBN('1'), {from: user1}),
-                'Crashed - please redeem your tokens on escrow'
-            );
-
-            await truffleAssert.reverts(
-                volume.transfer(mockLPAddress, toWeiBN('1'), {from: creditor}),
-                'Crashed - please redeem your tokens on escrow'
-            );
-
-            await truffleAssert.reverts(
-                volume.transfer(mockLPAddress, toWeiBN('1'), {from: freeloader}),
-                'Crashed - please redeem your tokens on escrow'
-            );
-
-            await truffleAssert.reverts(
-                volume.transfer(mockLPAddress, toWeiBN('1'), {from: directBurner}),
-                'Crashed - please redeem your tokens on escrow'
-            );
-        });
 
         it('fuel tracked by jackpot should be the same as the one at volume', async () => {
             const totalFuel = await volume.getTotalFuelAdded.call();
