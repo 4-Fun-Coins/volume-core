@@ -1,27 +1,32 @@
 # volume-core
 
-# BSCTest Deployement:
+# Current Deployement (Open Beta)
 
-### Faucet contract: 
-Address: `0xCFf364d0045Df807AB53dDC827d054Ee6807471a`
-BSCScan: https://testnet.bscscan.com/address/0xCFf364d0045Df807AB53dDC827d054Ee6807471a#contracts
+# Kovan
+
+### VolumeEscrow
+https://kovan.etherscan.io/address/0xDC03c48C629649FCd10Ab9f081C7374a5407BB85#contracts
+### VolumeJackpot
+https://kovan.etherscan.io/address/0xa3D29f0473422210b9f3fF5D6889CDE0b81937A4#contracts
+### Volume
+https://kovan.etherscan.io/address/0xbD13E0F8D014AaB39AE144BbDf539E3dD91c6FA6#contracts
+### VolumeFaucet
+https://kovan.etherscan.io/address/0x144aAA746504E1627168e41f1bE8e4806102Ec1A#contracts
+### Farm
+https://kovan.etherscan.io/address/0x3DD5021FEb27cfc8fAbBe461cba9e913E0833571#contracts
 
 
-### Volume BEP20 contract: 
-Address: `0x5980A1d3db54c22FEb966449fFD228a9E39c3970`
-BSCScan: https://testnet.bscscan.com/address/0x5980A1d3db54c22FEb966449fFD228a9E39c3970#contracts
-
-### Volume Jackpot contract: 
-Address: `0xD38a0b1f191D1AFAf788aD7162fC79aB058F3d99`
-BSCScan: https://testnet.bscscan.com/address/0xD38a0b1f191D1AFAf788aD7162fC79aB058F3d99#contracts
-
-### Volume Escrow contract: 
-Address: `0xA0CcF5047480a270C9ECcA7c7f6453c69443F882`
-BSCScan: https://testnet.bscscan.com/address/0xA0CcF5047480a270C9ECcA7c7f6453c69443F882#contracts
-
-### BSC Test Net VOL-WBNB Panecake Pair
-Address: `0xD96B923f431EBb36567dA8E26Ac987d94d7E4471`
-BSCScan: https://testnet.bscscan.com/address/0xd96b923f431ebb36567da8e26ac987d94d7e4471#contracts
+# BSC beta 0.2.0
+### VolumeEscrow
+https://testnet.bscscan.com/address/0xC16c2369FEd0A07ee011aA9ee76199650647e583#contracts
+### VolumeJackpot
+https://testnet.bscscan.com/address/0x3d659Ac8eB86200808E45337979f80e3c0F958Ed#contracts
+### Volume
+https://testnet.bscscan.com/address/0x94CC4969d5e33B5ED2671bf291c22540b388E956#contracts
+### VolumeFaucet
+https://testnet.bscscan.com/address/0xBc138819eA25eDf1AD51579C2936DF37C251214b#contracts
+### Farm
+https://testnet.bscscan.com/address/0xE2494A8545C9430C912Cca106838B00DBd6a4Ac1#contracts
 
 
 ## Guide to Deploy and test locally:
