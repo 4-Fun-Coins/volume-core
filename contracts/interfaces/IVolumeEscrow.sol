@@ -30,8 +30,5 @@ interface IVolumeEscrow {
 
     function getJackpotAddress() external view returns (address);
 
-    function getAllocation(uint id_) external view returns (uint256);
-
-    function estimateRedeemOutForIn(uint256 amountIn_) external view returns (uint);
-}
+    function getAllocation(uint id_) external view returns (uint256);}
 

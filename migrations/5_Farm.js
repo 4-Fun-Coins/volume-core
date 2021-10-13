@@ -1,12 +1,14 @@
 const ERC20 = artifacts.require("ERC20Mock");
 const LP = artifacts.require('LPMock');
 const Farm = artifacts.require("Farm");
+const TestVolume = artifacts.require("TestVolume");
+const Volume = artifacts.require("Volume");
 const allConfigs = require("../config.json");
 let zero = "0x0000000000000000000000000000000000000000";
 
 module.exports = function (deployer, network, addresses) {
     if (network == "kovan" || network == "BSCTest") {
-        deployer.deploy(Farm, zero, 0, 0);
+        deployer.deploy(Farm, Volume.address, 0, 0);
     } else {
         const config = allConfigs[network.replace(/-fork$/, '')] || allConfigs.default;
         if (!config) {

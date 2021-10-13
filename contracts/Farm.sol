@@ -35,6 +35,7 @@ contract Farm is Ownable {
         uint256 allocPoint;         // How many allocation points assigned to this pool. BEP20s to distribute per block.
         uint256 lastRewardBlock;    // Last block number that BEP20s distribution occurs.
         uint256 accBEP20PerShare;   // Accumulated BEP20s per share, times 1e36.
+        uint256 stakedAmount; // amount stakes
     }
 
     // Address of the BEP20 Token contract.
@@ -108,6 +109,7 @@ contract Farm is Ownable {
         totalAllocPoint = totalAllocPoint.add(allocPoint_);
         poolInfo.push(PoolInfo({
         lpToken : lpToken_,
+        stakedAmount: 0,
         allocPoint : allocPoint_,
         lastRewardBlock : lastRewardBlock,
         accBEP20PerShare : 0
@@ -140,13 +142,13 @@ contract Farm is Ownable {
         PoolInfo storage pool = poolInfo[pid_];
         UserInfo storage user = userInfo[pid_][user_];
         uint256 accBEP20PerShare = pool.accBEP20PerShare;
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        uint256 stakedAmount = pool.stakedAmount;
         uint256 lastBlock = block.number < endBlock ? block.number : endBlock;
 
-        if (lastBlock > pool.lastRewardBlock && block.number > pool.lastRewardBlock && lpSupply != 0) {
+        if (lastBlock > pool.lastRewardBlock && block.number > pool.lastRewardBlock && stakedAmount != 0) {
             uint256 nrOfBlocks = lastBlock.sub(pool.lastRewardBlock);
             uint256 bep20Reward = nrOfBlocks.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accBEP20PerShare = accBEP20PerShare.add(bep20Reward.mul(1e36).div(lpSupply));
+            accBEP20PerShare = accBEP20PerShare.add(bep20Reward.mul(1e36).div(stakedAmount));
         }
 
         return user.amount.mul(accBEP20PerShare).div(1e36).sub(user.rewardDebt);
@@ -184,8 +186,8 @@ contract Farm is Ownable {
         if (lastBlock <= pool.lastRewardBlock) {
             return;
         }
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-        if (lpSupply == 0) {
+        uint256 stakedAmount = pool.stakedAmount;
+        if (stakedAmount == 0) {
             pool.lastRewardBlock = lastBlock;
             return;
         }
@@ -193,12 +195,13 @@ contract Farm is Ownable {
         uint256 nrOfBlocks = lastBlock.sub(pool.lastRewardBlock);
         uint256 bep20Reward = nrOfBlocks.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
 
-        pool.accBEP20PerShare = pool.accBEP20PerShare.add(bep20Reward.mul(1e36).div(lpSupply));
+        pool.accBEP20PerShare = pool.accBEP20PerShare.add(bep20Reward.mul(1e36).div(stakedAmount));
         pool.lastRewardBlock = block.number;
     }
 
     /*
      Deposit LP tokens to Farm for BEP20 allocation.
+     Does not support deflation tokens (Volume sets the farm as freeloader so VOL can use this farm)
      */
     function deposit(uint256 pid_, uint256 amount_) public {
         PoolInfo storage pool = poolInfo[pid_];
@@ -209,6 +212,7 @@ contract Farm is Ownable {
             bep20Transfer(msg.sender, pendingAmount);
         }
         pool.lpToken.safeTransferFrom(address(msg.sender), address(this), amount_);
+        pool.stakedAmount += amount_;
         user.amount = user.amount.add(amount_);
         user.rewardDebt = user.amount.mul(pool.accBEP20PerShare).div(1e36);
         emit Deposit(msg.sender, pid_, amount_);
@@ -227,6 +231,7 @@ contract Farm is Ownable {
         user.amount = user.amount.sub(amount_);
         user.rewardDebt = user.amount.mul(pool.accBEP20PerShare).div(1e36);
         pool.lpToken.safeTransfer(address(msg.sender), amount_);
+        pool.stakedAmount -= amount_;
         emit Withdraw(msg.sender, pid_, amount_);
     }
 
@@ -237,6 +242,7 @@ contract Farm is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
+        pool.stakedAmount -= user.amount;
         emit EmergencyWithdraw(msg.sender, _pid, user.amount);
         user.amount = 0;
         user.rewardDebt = 0;

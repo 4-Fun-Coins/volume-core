@@ -23,8 +23,8 @@ contract VolumeEscrow is VolumeOwnable, ReentrancyGuard, IVolumeEscrow {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    address immutable wbnb; // WBNB contract address 
-    address immutable uniRouter;   // uniRouter address (any Uni-Like router)
+    address public immutable wbnb; // WBNB contract address 
+    address public uniRouter;   // uniRouter address (any Uni-Like router)
     address lpPool; // VOL-BNB liq pool 
     address volume; // the Vol token address   
     address volumeJackpot; // volumeJackpot address
@@ -50,10 +50,8 @@ contract VolumeEscrow is VolumeOwnable, ReentrancyGuard, IVolumeEscrow {
     /**
      * @dev Constructor.
      */
-    constructor(address multisig_, address wbnb_, address uniRouter_) VolumeOwnable(multisig_) {
+    constructor(address multisig_, address wbnb_) VolumeOwnable(multisig_) {
         require(wbnb_ != address(0), "wbnb can't be address zero");
-        require(uniRouter_ != address(0), "BakeryRouter can't be address zero");
-        uniRouter = uniRouter_;
         wbnb = wbnb_;
         _lpCreators[multisig_] = true;
     }
@@ -148,6 +146,15 @@ contract VolumeEscrow is VolumeOwnable, ReentrancyGuard, IVolumeEscrow {
     }
 
     /**
+        Define the Uni like router we are going to use to lock LP
+     */
+
+     function setUniLikeRouter(address uniRouter_ ) external onlyOwner{
+        require(uniRouter == address(0),'setUniLikeRouter: router already set');
+        uniRouter = uniRouter_;
+     }
+
+    /**
      * set the LP token manually in case the ICO Team are the ones who creates it after the IDO
      */
     function setLPAddress(address poolAddress_) override external onlyOwner {
@@ -205,26 +212,6 @@ contract VolumeEscrow is VolumeOwnable, ReentrancyGuard, IVolumeEscrow {
         return _allocations[id_];
     }
 
-    function estimateRedeemOutForIn(uint256 amountIn_) override external view returns (uint){
-        return (_totalBNBLeft * amountIn_) / _totalVolLeft;
-    }
-
-    function _redeemVolAfterRugPull(uint256 amount_, address to_, address from_) internal {
-        require(_rugpulled == 1, "You can't redeem before rug pull");
-        assert(_totalBNBLeft > 0 && _totalVolLeft > 0);
-
-        uint256 out = (_totalBNBLeft * amount_) / _totalVolLeft;
-
-        IBEP20(volume).safeTransferFrom(from_, address(this), amount_);
-        IBEP20(wbnb).safeTransfer(to_, out);
-
-        // burn what we just received
-        IVolumeBEP20(volume).directBurn(amount_);
-
-        _totalBNBLeft = _totalBNBLeft.sub(out);
-        _totalVolLeft = _totalVolLeft.sub(amount_);
-    }
-
     function _subAllocation(uint id_, uint256 amount_) internal {
         _allocations[id_] = _allocations[id_].sub(amount_);
     }
@@ -233,8 +220,9 @@ contract VolumeEscrow is VolumeOwnable, ReentrancyGuard, IVolumeEscrow {
         Will use the WBNB in this contract balance and The 
     */
     function _createLP(uint256 wbnbAmount_, uint256 volumeAmount_, uint slippage_) internal {
+        require(uniRouter != address(0), "_createLP: Router not set");
         lpPool = IUniSwapFactory(IUniSwapRouter(uniRouter).factory()).getPair(volume, wbnb);
-        require(lpPool == address(0), 'already created');
+        require(lpPool == address(0), '_createLP: already created');
 
         // Approve the tokens for the uni like router
         IBEP20(wbnb).safeApprove(uniRouter, wbnbAmount_);

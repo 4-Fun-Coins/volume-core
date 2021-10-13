@@ -11,5 +11,5 @@ module.exports = function (deployer, network, accounts) {
         uniLikeRouter = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1"; // panecake on BscTest (same contratc as uniV2)
     }
     // TODO replace with multi sig
-    deployer.deploy(VolumeEscrow, accounts[0], wbnb, uniLikeRouter);
+    deployer.deploy(VolumeEscrow, accounts[0], wbnb);
 };
